@@ -296,23 +296,32 @@ if (rsvpForm) {
     const prezenta = document.getElementById("prezenta").value;
     if (!nume || !prezenta) { alert("Te rog completeaza numele si daca vii sau nu."); return; }
     try {
-      const resp = await fetch("http://127.0.0.1:5000/rsvp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nume, persoane, prezenta }),
-      });
-      const data = await resp.json();
-      if (resp.ok && (data.ok || data.success || data.message)) {
-        const msg = document.getElementById("rsvp-msg");
-        if (msg) { msg.style.display = "block"; msg.textContent = data.message || "Multumim! Am inregistrat confirmarea ta ❤️"; }
-        rsvpForm.reset();
-      } else {
-        alert("Nu am putut trimite confirmarea.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Serverul nu raspunde. L-ai pornit cu python app.py?");
+  const resp = await fetch("https://invitatie-botez-thea.onrender.com/rsvp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: nume,
+      persons: persoane,
+      status: prezenta
+    }),
+  });
+
+  const data = await resp.json();
+
+  if (resp.ok && (data.ok || data.success)) {
+    const msg = document.getElementById("rsvp-msg");
+    if (msg) {
+      msg.style.display = "block";
+      msg.textContent = "Multumim! Am inregistrat confirmarea ta.";
     }
+    rsvpForm.reset();
+  } else {
+    alert("Nu am putut trimite confirmarea.");
+  }
+} catch (err) {
+  console.error(err);
+  alert("Serverul nu raspunde (verifica conexiunea).");
+}
   });
 }
 
