@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <title>Confirma prezenta</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- aici ramane stilul tau -->
+  <style>
+    body {
+      background: #f4edff;
+      font-family: Arial, sans-serif;
+    }
+    .box {
+      max-width: 520px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 22px;
+      padding: 30px 35px 25px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+    }
+    h1 {
+      text-align: center;
+      margin-top: 0;
+      color: #3c2273;
+    }
+    label { font-weight: 600; color: #3c2273; display: block; margin-bottom: 6px; }
+    input, select {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+    button {
+      width: 100%;
+      background: #b58df0;
+      border: none;
+      padding: 14px;
+      border-radius: 14px;
+      color: #3c2273;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #a775f0;
+    }
+    #msg {
+      display: none;
+      background: #e5fff1;
+      border: 1px solid #36b470;
+      color: #1b7342;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      text-align: center;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Confirma prezenta</h1>
+    <div id="msg">Multumim! Raspunsul a fost inregistrat.</div>
+    <form id="rsvpForm">
+      <label for="nume">Nume complet</label>
+      <input type="text" id="nume" name="nume" placeholder="Ex: Popescu Andrei" required>
+
+      <label for="prezenta">Participare</label>
+      <select id="prezenta" name="prezenta">
+        <option value="particip">Particip</option>
+        <option value="nu_particip">Nu particip</option>
+      </select>
+
+      <div id="persoaneWrap">
+        <label for="persoane">Cate persoane veniti?</label>
+        <input type="number" id="persoane" name="persoane" value="1" min="1">
+      </div>
+
+      <button type="submit">Trimite</button>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('rsvpForm');
+    const msg = document.getElementById('msg');
+    const prezenta = document.getElementById('prezenta');
+    const persoaneWrap = document.getElementById('persoaneWrap');
+
+    prezenta.addEventListener('change', () => {
+      if (prezenta.value === 'nu_particip') {
+        persoaneWrap.style.display = 'none';
+      } else {
+        persoaneWrap.style.display = 'block';
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const payload = {
+        nume: document.getElementById('nume').value.trim(),
+        prezenta: prezenta.value,
+        persoane: prezenta.value === 'nu_particip'
+          ? 0
+          : parseInt(document.getElementById('persoane').value || '1', 10)
+      };
+
+      try {
+        const resp = await fetch('http://127.0.0.1:5000/rsvp', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          alert("Serverul a raspuns cu eroare. Verifica app.py.");
+          return;
+        }
+
+        msg.style.display = 'block';
+        form.reset();
+        persoaneWrap.style.display = 'block';
+      } catch (err) {
+        alert("Nu am putut trimite. Verifica daca ruleaza python app.py in folderul backend.");
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>

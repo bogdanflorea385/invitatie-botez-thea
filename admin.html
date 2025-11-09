@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin RSVP</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      padding: 20px; 
+      background: #f3f0ff; 
+    }
+    h1 { margin-top: 0; }
+    table { border-collapse: collapse; width: 100%; background: #fff; }
+    th, td { border: 1px solid #ddd; padding: 8px; font-size: 14px; }
+    th { background: #ede5ff; }
+    button.del {
+      background: #ff9090;
+      border: none;
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    button.del:hover { background: #ff6b6b; }
+    .topbar {
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .stat {
+      background: #fff;
+      padding: 8px 14px;
+      border-radius: 10px;
+      margin-right: 6px;
+      font-size: 13px;
+    }
+    #adminContent { display: none; }
+    #loginBox {
+      background: #fff;
+      max-width: 300px;
+      margin: 100px auto;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    #loginBox input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    #loginBox button {
+      width: 100%;
+      padding: 10px;
+      background: #b28efc;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #loginBox button:hover { background: #a27ef0; }
+    .remember {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div id="loginBox">
+    <h2>Acces Admin</h2>
+    <input type="password" id="parola" placeholder="Introdu parola">
+    <label class="remember">
+      <input type="checkbox" id="rememberMe"> Tine-ma minte
+    </label>
+    <button onclick="checkPass()">Autentificare</button>
+    <p id="err" style="color:red;display:none;">Parola incorecta!</p>
+  </div>
+
+  <!-- ADMIN CONTENT -->
+  <div id="adminContent">
+    <div class="topbar">
+      <h1>Lista confirmari</h1>
+      <div>
+        <span class="stat" id="totalInvitati">Total inregistrari: 0</span>
+        <span class="stat" id="totalParticipa">Participa: 0 pers.</span>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nume</th>
+          <th>Participare</th>
+          <th>Persoane</th>
+          <th>La</th>
+          <th>Actiuni</th>
+        </tr>
+      </thead>
+      <tbody id="tBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const PAROLA_ADMIN = "Thea2025";
+    const STORAGE_KEY = "admin_thea_ok";
+
+    // cand deschizi admin.html, vezi daca esti deja logat
+    window.addEventListener("DOMContentLoaded", () => {
+      const ok = localStorage.getItem(STORAGE_KEY);
+      if (ok === "1") {
+        // afisam direct adminul
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('adminContent').style.display = 'block';
+        loadData();
+      }
+    });
+
+    function checkPass() {
+      const val = document.getElementById('parola').value.trim();
+      const err = document.getElementById('err');
+      const remember = document.getElementById('rememberMe').checked;
+
+      if (val === PAROLA_ADMIN) {
+        // daca a bifat "tine-ma minte", salvam in localStorage
+        if (remember) {
+          localStorage.setItem(STORAGE_KEY, "1");
+        }
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('adminContent').style.display = 'block';
+        loadData();
+      } else {
+        err.style.display = 'block';
+      }
+    }
+
+    async function loadData() {
+      const resp = await fetch('http://127.0.0.1:5000/lista');
+      const data = await resp.json();
+
+      const tb = document.getElementById('tBody');
+      tb.innerHTML = '';
+
+      let totalPersoane = 0;
+
+      data.forEach((item, idx) => {
+        if (item.prezenta === 'particip' || item.prezenta === 'vin') {
+          totalPersoane += (item.persoane || 0);
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${item.nume || ''}</td>
+          <td>${item.prezenta || ''}</td>
+          <td>${item.persoane || 0}</td>
+          <td>${item.timestamp || ''}</td>
+          <td><button class="del" onclick="deleteEntry(${idx})">Sterge</button></td>
+        `;
+        tb.appendChild(tr);
+      });
+
+      document.getElementById('totalInvitati').textContent = "Total inregistrari: " + data.length;
+      document.getElementById('totalParticipa').textContent = "Participa: " + totalPersoane + " pers.";
+    }
+
+    async function deleteEntry(index) {
+      const ok = confirm("Sigur vrei sa stergi aceasta inregistrare?");
+      if (!ok) return;
+
+      const resp = await fetch('http://127.0.0.1:5000/delete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ index: index })
+      });
+
+      if (resp.ok) {
+        loadData();
+      } else {
+        alert("Nu am putut sterge.");
+      }
+    }
+  </script>
+
+</body>
+</html>

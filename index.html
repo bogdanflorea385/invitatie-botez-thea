@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invitatie botez Thea</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== PAGINA 1: poveste audio ===== -->
+  <section class="intro" id="intro">
+
+    <!-- ===== AUDIO VOCE ===== -->
+    <audio id="voceThea" preload="auto" playsinline>
+      <source src="audio/voce-thea.mp3" type="audio/mpeg" />
+    </audio>
+
+    <!-- ===== AUDIO PIAN BACKGROUND ===== -->
+    <audio id="bgPiano" preload="auto" loop playsinline>
+      <source src="audio/pian.mp3" type="audio/mpeg" />
+    </audio>
+
+    <!-- imaginea de fundal -->
+    <img src="img/fundal-thea.png" alt="Fundal Thea" class="intro-bg" />
+
+    <!-- overlay poveste cu text fix in acelasi loc -->
+    <div class="story-overlay">
+      <h1>Lumina dintre Apus si Rasarit</h1>
+
+      <!-- ZONA FIXA pentru rotirea paragrafelor -->
+      <div class="story-text">
+        <p class="story-line active">
+          Se spune ca Thea, in mitologia greaca, era zeita vederii si stralucirii,
+          cea care dadea aurului, argintului si pietrelor pretioase lumina lor.
+        </p>
+
+        <p class="story-line">
+          Intr-un tarziu de zi, cand Soarele isi incheia calatoria,
+          revarsand pe bolta un potop de culori calde,
+          Thea a ales sa vina pe lume. Apusul acela magic a fost prima ei promisiune –
+          aceea ca va aduce lumina chiar si in ceasul cel mai tainic.
+        </p>
+
+        <p class="story-line">
+          Acum, in zorii vietii sale spirituale, Thea este Rasaritul nostru.
+          Ea este licarirea care ne sopteste ca fiecare zi aduce un nou inceput,
+          o noua speranta, o noua minune.
+        </p>
+
+        <p class="story-line">
+          Va invitam sa fiti martori la unirea dintre Cer si Pamant, cand,
+          prin Sfanta Taina, vom pecetlui drumul in credinta al micutei noastre.
+          Veniti sa ne bucuram impreuna de lumina pe care ea a adus-o in vietile noastre!
+        </p>
+
+        <p class="story-line">
+          Va invitam cu sufletul plin de emotie la botezul fiicei noastre.
+        </p>
+
+        <p class="story-line">
+          Cu drag, familia noastra va asteapta sa ne fiti alaturi.
+        </p>
+      </div>
+    </div>
+
+    <!-- stele cazatoare jos -->
+    <div class="stars-layer" id="starsLayer"></div>
+
+    <!-- BUTON: sari direct la Pagina 2 -->
+    <button id="skipToDetails" class="skip-btn" aria-label="Sari la Pagina 2">Sari la detalii</button>
+
+    <!-- overlay pornire audio -->
+    <div class="tap-to-start" id="tapToStart">
+      Apasa pentru a porni povestea 🌙
+    </div>
+  </section>
+
+  <!-- ===== PAGINA 2: detalii botez ===== -->
+  <main class="pagina2" id="pagina2">
+    <div class="grid-wrap">
+
+      <!-- CARDURI SUS (biserica / restaurant / parinti / nasi) -->
+      <div class="top-cards">
+        <!-- Biserica -->
+        <div class="card card-biserica">
+          <div class="card-content">
+            <h2>Ceremonia religioasa</h2>
+            <p><strong>Biserica „Sfantul Ioan Iacob Hozevitul”</strong></p>
+            <p>📅 10.01.2026</p>
+            <p>⏰ ora: (in curs de stabilire)</p>
+            <p>📍 <a href="https://maps.app.goo.gl/ecCrp8TH9TSZnWq66" target="_blank">
+              Strada Gheorghe Petrascu 57, Bucuresti
+            </a></p>
+          </div>
+        </div>
+
+        <!-- Restaurant -->
+        <div class="card card-restaurant">
+          <div class="card-content">
+            <h2>Petrecerea</h2>
+            <p><strong>Restaurant Emporium Events</strong></p>
+            <p>📅 10.01.2026</p>
+            <p>⏰ ora: (in curs de stabilire)</p>
+            <p>📍 <a href="https://maps.app.goo.gl/o9t4FVNoc6MDMFm4A" target="_blank">
+              Bulevardul Basarabia 45, Bucuresti
+            </a></p>
+          </div>
+        </div>
+
+        <!-- Parintii -->
+        <div class="card card-parinti">
+          <div class="card-content">
+            <h2>Parintii</h2>
+            <p>Bogdan si Georgiana</p>
+            <p>Frati: Angelo si Erika</p>
+            <p>🤍 Cu drag va asteptam!</p>
+          </div>
+        </div>
+
+        <!-- Nasii -->
+        <div class="card card-nasii">
+          <div class="card-content">
+            <h2>Nasii</h2>
+            <p>Florin si Diana</p>
+            <p>„Promitem sa ii fim alaturi.”</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD FORMULAR RSVP -->
+      <section class="rsvp card-box">
+        <h2>Confirma prezenta</h2>
+
+        <!-- Imagine decorativa -->
+        <div class="rsvp-hero">
+          <img src="img/confirmare.png" alt="Confirmare prezenta" />
+        </div>
+
+        <form id="rsvp-form">
+          <label for="nume">Nume</label>
+          <input type="text" id="nume" name="nume" required />
+
+          <label for="numar_persoane">Numar persoane</label>
+<select id="numar_persoane" name="numar_persoane" required>
+  <option value="">Alege numarul de persoane</option>
+  <option value="1">1</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+  <option value="4">4</option>
+  <option value="5">5</option>
+  <option value="6">6</option>
+  <option value="7">7</option>
+  <option value="8">8</option>
+  <option value="9">9</option>
+  <option value="10">10</option>
+</select>
+
+
+          <label for="prezenta">Participi?</label>
+          <select id="prezenta" name="prezenta" required>
+            <option value="">Alege o optiune</option>
+            <option value="da">Particip</option>
+            <option value="nu">Nu pot participa</option>
+          </select>
+
+          <button type="submit">Trimite confirmarea</button>
+        </form>
+
+        <p id="rsvp-msg" style="display:none;"></p>
+        <p class="subnote">
+          Micuta Thea va fi primita cu dragoste si lumina,
+          iar prezenta ta ar insemna mult pentru noi.
+          Te rugam sa confirmi participarea pentru a ne putea organiza cat mai bine.
+          Cu drag, parintii Theei 💖
+        </p>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- DOAR fișierul JS, fără alte scripturi inline -->
+  <script src="script.js"></script>
+</body>
+</html>

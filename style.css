@@ -1,0 +1,219 @@
+/* ===== STIL DE BAZĂ + FUNDAL ===== */
+body{
+  margin:0;
+  font-family:"Poppins",sans-serif;
+  background:linear-gradient(180deg,#e4d4e8 0%,#d4b5d9 50%,#e7d1df 100%);
+  background-size:400% 400%;
+  animation:gradientFlow 15s ease-in-out infinite;
+  color:#0a020d;
+}
+@keyframes gradientFlow{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+
+/* ===== PAGINA 1 (intro + poveste) ===== */
+.intro{
+  position:fixed; inset:0;
+  display:flex; justify-content:center; align-items:flex-start;
+  background:#000; z-index:1000; overflow:hidden;
+}
+.intro.hide{display:none;}
+.intro-bg{position:fixed; inset:0; width:100%; height:100%; object-fit:contain; background:#000; z-index:-1}
+
+.story-overlay{
+  position:absolute; top:5vh; left:50%; transform:translateX(-50%);
+  width:min(900px,36vw);
+  background:rgba(0,0,0,.02);
+  padding:16px 30px 26px; text-align:center; color:#fff; line-height:1.35;
+  z-index:50; transition:all .8s ease;
+}
+.story-overlay h1{margin:0 0 12px; font-size:clamp(1.8rem,3vw,2.6rem); font-weight:700}
+
+.story-text{
+  position:relative; width:100%;
+  height:42vh; max-height:420px; min-height:220px;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden; margin:0 auto; padding:0 14px;
+}
+.story-line{
+  position:absolute; top:50%; left:50%; width:92%;
+  transform:translate(-50%,-50%);
+  margin:0; text-align:center; line-height:1.5;
+  color:#fff; text-shadow:0 0 6px rgba(0,0,0,.5);
+  opacity:0; pointer-events:none;
+}
+.story-line.active{opacity:1; animation:lineFadeIn .5s ease forwards}
+.story-line.leaving{animation:lineFadeOutUp .45s ease forwards}
+@keyframes lineFadeIn{from{opacity:0; transform:translate(-50%,calc(-50% + 10px))}to{opacity:1; transform:translate(-50%,-50%)}}
+@keyframes lineFadeOutUp{from{opacity:1; transform:translate(-50%,-50%)}to{opacity:0; transform:translate(-50%,calc(-50% - 12px))}}
+
+.tap-to-start{
+  position:fixed; inset:0; background:rgba(0,0,0,.6);
+  display:flex; justify-content:center; align-items:center;
+  color:#fff; font-size:1.15rem; font-weight:500; cursor:pointer; z-index:1500;
+}
+
+/* ===== STELE & SCÂNTEI ===== */
+.stars-layer{position:fixed; inset:0; pointer-events:none; z-index:9990}
+.shooting-star{
+  position:absolute; width:120px; height:2px;
+  background:linear-gradient(90deg,rgba(255,255,255,1) 0%,rgba(255,255,255,0) 100%);
+  filter:drop-shadow(0 0 6px rgba(255,255,255,.8));
+  animation:starFly 1.9s linear forwards; transform:rotate(-15deg);
+}
+@keyframes starFly{0%{opacity:1; transform:translateX(0) translateY(0) rotate(-15deg)}100%{opacity:0; transform:translateX(-280px) translateY(160px) rotate(-15deg)}}
+
+.spark{
+  position:absolute; width:6px; height:6px; border-radius:50%;
+  opacity:.95; pointer-events:none;
+  filter:blur(1.5px) drop-shadow(0 0 8px rgba(255,230,180,.9));
+  animation:sparkAnim 2.8s ease-out forwards; z-index:9999;
+  background:radial-gradient(circle,var(--sparkColor1) 0%,var(--sparkColor2) 20%,transparent 80%);
+}
+@keyframes sparkAnim{
+  0%{transform:scale(1) translate(0,0); opacity:1}
+  30%{transform:scale(1.3) translate(calc(var(--tx)*.3),calc(var(--ty)*-.3)); opacity:1}
+  70%{transform:scale(1.1) translate(calc(var(--tx)*.7),calc(var(--ty)*-.8)); opacity:.8}
+  100%{transform:scale(.3) translate(calc(var(--tx)),calc(var(--ty)*-1.5)); opacity:0}
+}
+
+/* ===== TRANZIȚII ===== */
+.fade-out{animation:fadeOut 2s ease forwards}
+@keyframes fadeOut{from{opacity:1}to{opacity:0; filter:blur(3px); pointer-events:none}}
+.fade-in{animation:fadeIn 1.2s ease forwards}
+@keyframes fadeIn{from{opacity:0; transform:translateY(10px)}to{opacity:1; transform:translateY(0)}}
+
+/* ===== PAGINA 2 ===== */
+.pagina2{display:none; padding:30px 20px 60px; background:transparent; position:relative; z-index:1}
+
+/* ===== GRID & CARDURI ===== */
+.grid-wrap{width:1100px; max-width:100%; margin:0 auto; padding:30px 15px 50px}
+.top-cards{display:grid; grid-template-columns:repeat(2,minmax(280px,1fr)); gap:24px}
+
+.card{
+  background:transparent;
+  border-radius:20px; overflow:hidden;
+  box-shadow:0 10px 25px rgba(0,0,0,.08);
+  position:relative; min-height:260px; display:flex; align-items:flex-end;
+  transition:.3s;
+}
+.card:hover{transform:scale(1.02); box-shadow:0 15px 28px rgba(0,0,0,.12)}
+
+.card::before{
+  content:""; position:absolute; inset:0;
+  background-size:cover; background-position:center; background-repeat:no-repeat;
+  opacity:1;
+}
+.card::after{
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,.55) 15%,rgba(0,0,0,0) 65%);
+  z-index:1; pointer-events:none; transition:background .4s ease;
+}
+.card:hover::after{background:linear-gradient(to top,rgba(0,0,0,.4) 10%,rgba(0,0,0,0) 65%)}
+
+.card-content{
+  position:absolute; left:0; right:0; bottom:0;
+  background:transparent;
+  width:100%; padding:18px 18px 16px;
+  border-top-left-radius:20px; border-top-right-radius:20px;
+  z-index:2;
+}
+
+/* text general pe carduri din top-cards = alb + umbră */
+.top-cards .card-content h2,
+.top-cards .card-content p,
+.top-cards .card-content a{
+  color:#fff !important;
+  text-shadow:0 2px 8px rgba(0,0,0,.65);
+}
+
+/* ===== Imagini carduri ===== */
+.card-biserica::before{background-image:url("img/biserica.jpg")}
+.card-restaurant::before{background-image:url("img/restaurant.jpg")}
+.card-parinti::before{background-image:url("img/familie-thea.jpg")}
+.card-nasii::before{background-image:url("img/nasu.jpeg")}
+
+/* ===== Zoom-out controlat pe 3 carduri =====
+   folosim < 100% ca să “îndepărtăm” cadrul; media query revine la cover pe ecrane mici */
+.card-biserica::before{background-size:52% auto; background-position:50% 18%; background-color:#000}
+.card-parinti::before{ background-size:88% auto; background-position:50% 50%; background-color:#000}
+.card-nasii::before{   background-size:88% auto; background-position:50% 40%; background-color:#000}
+
+@media (max-width:700px){
+  .card-biserica::before,
+  .card-parinti::before,
+  .card-nasii::before{
+    background-size:cover; background-position:center;
+  }
+}
+
+/* ===== Adrese albastre pentru Biserică & Restaurant (override peste link-urile albe) ===== */
+.card-biserica .card-content a,
+.card-biserica .card-content p a,
+.card-restaurant .card-content a,
+.card-restaurant .card-content p a{
+  color:#8dc6ff !important;
+  text-decoration:underline;
+  font-weight:600;
+  cursor:pointer;
+  text-shadow:0 0 4px rgba(0,0,0,.55);
+}
+.card-biserica .card-content a:hover,
+.card-restaurant .card-content a:hover{color:#b9daff !important}
+
+/* ===== CARD FORMULAR (RSVP) ===== */
+.card-box h2{display:none}
+.card-box{overflow:hidden}
+.rsvp-hero{margin:-24px -24px 16px; border-top-left-radius:20px; border-top-right-radius:20px; overflow:hidden}
+.rsvp-hero img{display:block; width:100%; height:clamp(180px,35vw,320px); object-fit:cover}
+@media (max-width:700px){.rsvp-hero img{height:clamp(180px,45vw,320px)}}
+
+.rsvp label{display:block; margin:10px 0 6px; color:#4b2a7b}
+.rsvp input,.rsvp select,.rsvp button{
+  display:block; width:100%; margin:0 0 12px; padding:10px;
+  border-radius:8px; border:1px solid #ddd; font-size:1rem;
+}
+.rsvp button{background:#ec4949; color:#fff; border:none; cursor:pointer; transition:background .25s ease}
+.rsvp button:hover{background:#c66bb1}
+
+/* ===== Responsive ===== */
+@media (max-width:900px){.top-cards{display:flex; flex-direction:column; gap:20px}}
+@media (max-width:700px){.story-overlay{top:6vh; width:92vw} .story-text{height:50vh; min-height:240px}}
+
+/* ===== SKIP TO DETAILS (buton flotant Pagina 1) ===== */
+.skip-btn{
+  position:absolute;
+  right:16px;
+  bottom:16px;
+  padding:10px 14px;
+  font-size:14px;
+  line-height:1;
+  border:1px solid rgba(255,255,255,0.6);
+  background:rgba(0,0,0,0.45);
+  color:#fff;
+  border-radius:10px;
+  backdrop-filter:blur(4px);
+  cursor:pointer;
+  transition:transform .15s ease, opacity .15s ease, background .2s ease, box-shadow .2s ease;
+  z-index:1400; /* sub overlay-ul de start (1500), peste restul intro */
+}
+
+.skip-btn:hover{ transform:translateY(-1px); opacity:.96; }
+.skip-btn:active{ transform:translateY(0); }
+.skip-btn:focus{ outline:none; }
+.skip-btn:focus-visible{
+  box-shadow:0 0 0 3px rgba(255,255,255,0.35);
+}
+
+/* mic upgrade pt. mobile: zona de touch mai mare */
+@media (max-width:700px){
+  .skip-btn{
+    right:12px;
+    bottom:12px;
+    padding:12px 16px;
+    font-size:15px;
+    border-radius:12px;
+  }
+}
