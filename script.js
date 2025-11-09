@@ -130,14 +130,59 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pageshow", (e) => { if (e.persisted) resetIntroState(); });
 
 // ===== START LA TAP / ENTER / SPACE =====
-if (tapToStart) {
-  tapToStart.addEventListener("click", startByGesture);
-  tapToStart.addEventListener("touchstart", (e) => { e.preventDefault(); startByGesture(); }, { passive: false });
-  document.addEventListener("keydown", (e) => {
-    if (tapToStart.style.display === "none") return;
-    if (e.code === "Enter" || e.code === "Space") { e.preventDefault(); startByGesture(); }
+// ===== START LA TAP / ENTER / SPACE (unified, single-run) =====
+function userStartOnce(e) {
+  if (started) return;
+  started = true;
+
+  // curăță listener-ele ca să nu ceară încă un tap
+  if (tapToStart) {
+    tapToStart.removeEventListener("pointerdown", userStartOnce);
+    tapToStart.removeEventListener("click", userStartOnce);
+  }
+  document.removeEventListener("keydown", keyStartOnce);
+
+  // pornește SINCRON exact de la 0
+  try { voce.pause(); melodie.pause(); } catch(_) {}
+  try { voce.currentTime = 0; melodie.currentTime = 0; } catch(_){}
+  try { if (voce.readyState < 2) voce.load(); } catch(_){}
+  try { if (melodie.readyState < 2) melodie.load(); } catch(_){}
+
+  const p1 = voce.play();
+  const p2 = melodie.play();
+
+  Promise.allSettled([p1, p2]).then(res => {
+    const ok = res.some(r => r.status === "fulfilled");
+    if (ok) {
+      if (tapToStart) tapToStart.style.display = "none";
+    } else {
+      // dacă a fost blocat, permitem încă un tap
+      started = false;
+      if (tapToStart) tapToStart.style.display = "flex";
+      attachStartListeners();
+    }
   });
 }
+
+function keyStartOnce(e) {
+  if (tapToStart && tapToStart.style.display === "none") return;
+  if (e.code === "Enter" || e.code === "Space") {
+    e.preventDefault();
+    userStartOnce(e);
+  }
+}
+
+function attachStartListeners() {
+  if (!tapToStart) return;
+  // pointerdown acoperă touch + mouse (evită dublu-tap)
+  tapToStart.addEventListener("pointerdown", userStartOnce, { once: false });
+  // fallback dacă nu există pointer events
+  tapToStart.addEventListener("click", userStartOnce, { once: false });
+  document.addEventListener("keydown", keyStartOnce);
+}
+
+// inițializează listener-ele dacă overlay-ul e vizibil
+if (tapToStart) attachStartListeners();
 
 // ===== SINCRONIZARE TEXT + TITLU =====
 function setActiveLine(newIndex) {
