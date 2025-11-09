@@ -11,15 +11,14 @@ const storyText   = document.querySelector(".story-text");
 const h1          = document.querySelector(".story-overlay h1");
 const starsLayer  = document.getElementById("starsLayer");
 
-// ===== STRAT SCANTEI =====
+// ===== STRAT SCÂNTEI =====
 let sparkLayer = document.getElementById("sparkLayer");
 if (!sparkLayer) {
   sparkLayer = document.createElement("div");
   sparkLayer.id = "sparkLayer";
-  sparkLayer.style.position = "fixed";
-  sparkLayer.style.inset = "0";
-  sparkLayer.style.pointerEvents = "none";
-  sparkLayer.style.zIndex = "9999";
+  Object.assign(sparkLayer.style, {
+    position: "fixed", inset: "0", pointerEvents: "none", zIndex: "9999"
+  });
   document.body.appendChild(sparkLayer);
 }
 
@@ -40,6 +39,18 @@ const cues = [
 const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 let lastShownIndex = -1;
 let autoScrollOnce = false;
+let started = false;
+
+function ensureFromZero(audioEl) {
+  if (!audioEl) return;
+  try {
+    audioEl.pause();
+    audioEl.currentTime = 0;   // start fix
+    // pe unele browsere, un load() scurt asigură indexarea de la 0
+    if (audioEl.readyState < 2) audioEl.load();
+    audioEl.playbackRate = 1;
+  } catch (_) {}
+}
 
 function setFirstLineActive() {
   if (!lines.length) return;
@@ -49,8 +60,8 @@ function setFirstLineActive() {
 }
 
 function resetIntroState() {
-  try { voce.pause(); voce.currentTime = 0; } catch(_) {}
-  try { melodie.pause(); melodie.currentTime = 0; } catch(_) {}
+  ensureFromZero(voce);
+  ensureFromZero(melodie);
 
   if (intro)  { intro.style.display = "";  intro.classList.remove("fade-out"); }
   if (pagina2){ pagina2.style.display = "none"; pagina2.classList.remove("fade-in"); }
@@ -61,56 +72,52 @@ function resetIntroState() {
     tapToStart.textContent = "Apasa pentru a porni povestea 🌙";
   }
   setFirstLineActive();
-  if (h1) h1.style.opacity = 1;
+  if (h1) { h1.style.opacity = 1; h1.style.transition = "opacity 800ms ease"; }
+  started = false;
 }
 
-// ===== PORNIRE CU/FARA INTERACTIUNE =====
-function playAfterUserGesture() {
-  voce.muted = true;
-  melodie.muted = true;
+// ===== PLAY LOGIC (fără delay, vocea prima) =====
+async function tryAutoplayDesktop() {
+  // Vocea de la 0, fără mute/unmute, fără timeouts
+  ensureFromZero(voce);
+  ensureFromZero(melodie);
+  try {
+    await voce.play();                 // pornește vocea imediat
+    melodie.play().catch(() => {});    // pianul în paralel (dacă permite)
+    if (tapToStart) tapToStart.style.display = "none";
+    started = true;
+  } catch {
+    if (tapToStart) tapToStart.style.display = "flex";
+  }
+}
 
+function startByGesture() {
+  if (started) return;
+  ensureFromZero(voce);
+  ensureFromZero(melodie);
   voce.play().then(() => {
     melodie.play().catch(() => {});
     if (tapToStart) tapToStart.style.display = "none";
-    setTimeout(() => { voce.muted = false; melodie.muted = false; }, 600);
-    if (h1) setTimeout(() => { h1.style.opacity = 0; }, 13000);
+    started = true;
   }).catch(() => {
-    if (tapToStart) {
-      tapToStart.style.display = "flex";
-      tapToStart.textContent = "Apasa pentru a porni povestea 🌙";
-    }
+    if (tapToStart) tapToStart.style.display = "flex";
   });
 }
 
 // ===== INIT =====
 document.addEventListener("DOMContentLoaded", () => {
   resetIntroState();
-
-  const tryAutoplay = async () => {
-    try {
-      voce.muted = true;
-      melodie.muted = true;
-
-      await voce.play();
-      await melodie.play().catch(() => {});
-
-      if (tapToStart) tapToStart.style.display = "none";
-      setTimeout(() => { voce.muted = false; melodie.muted = false; }, 600);
-      if (h1) setTimeout(() => { h1.style.opacity = 0; }, 13000);
-    } catch (err) {
-      if (tapToStart) tapToStart.style.display = "flex";
-      console.log("Autoplay blocat, asteptam interactiune:", err);
-    }
-  };
-
-  // incercam autoplay pe toate device-urile
-  tryAutoplay();
+  if (!isTouch) {
+    tryAutoplayDesktop();
+  } else {
+    if (tapToStart) tapToStart.style.display = "flex";
+  }
 });
 
-// re-incercare cand revii in tab
+// dacă revii în tab și încă n-a pornit, mai încearcă o dată
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && tapToStart && tapToStart.style.display !== "none") {
-    playAfterUserGesture();
+  if (document.visibilityState === "visible" && !started) {
+    if (!isTouch) tryAutoplayDesktop();
   }
 });
 
@@ -118,17 +125,16 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pageshow", (e) => { if (e.persisted) resetIntroState(); });
 
 // ===== START LA TAP / ENTER / SPACE =====
-function startNarration() { playAfterUserGesture(); }
 if (tapToStart) {
-  tapToStart.addEventListener("click", startNarration);
-  tapToStart.addEventListener("touchstart", (e) => { e.preventDefault(); startNarration(); }, { passive: false });
+  tapToStart.addEventListener("click", startByGesture);
+  tapToStart.addEventListener("touchstart", (e) => { e.preventDefault(); startByGesture(); }, { passive: false });
   document.addEventListener("keydown", (e) => {
     if (tapToStart.style.display === "none") return;
-    if (e.code === "Enter" || e.code === "Space") { e.preventDefault(); startNarration(); }
+    if (e.code === "Enter" || e.code === "Space") { e.preventDefault(); startByGesture(); }
   });
 }
 
-// ===== SINCRONIZARE TEXT PE AUDIO =====
+// ===== SINCRONIZARE TEXT + TITLU =====
 function setActiveLine(newIndex) {
   if (!lines.length) return;
   if (newIndex === lastShownIndex) return;
@@ -138,13 +144,11 @@ function setActiveLine(newIndex) {
   if (!next) return;
 
   lines.forEach((l, i) => { if (i !== newIndex) l.classList.remove("active", "leaving"); });
-
   if (current) {
     current.classList.remove("active");
     current.classList.add("leaving");
     current.addEventListener("animationend", () => current.classList.remove("leaving"), { once: true });
   }
-
   next.classList.add("active");
   createSparks(storyText || next);
   lastShownIndex = newIndex;
@@ -152,6 +156,10 @@ function setActiveLine(newIndex) {
 
 voce.addEventListener("timeupdate", () => {
   const t = voce.currentTime;
+
+  // titlul rămâne vizibil până la 13s
+  if (h1) h1.style.opacity = t < 13 ? 1 : 0;
+
   let currentIndex = 0;
   for (let i = 0; i < cues.length; i++) {
     if (t >= cues[i].time) currentIndex = cues[i].index;
@@ -159,7 +167,7 @@ voce.addEventListener("timeupdate", () => {
   setActiveLine(currentIndex);
 });
 
-// ===== TRANZITIE LA PAGINA 2 =====
+// ===== TRANZIȚIE LA PAGINA 2 =====
 voce.addEventListener("ended", () => {
   if (intro) intro.classList.add("fade-out");
   setTimeout(() => {
@@ -193,7 +201,7 @@ voce.addEventListener("ended", () => {
   }, 2000);
 });
 
-// ===== SCANTEI =====
+// ===== SCÂNTEI =====
 function createSparks(anchorEl) {
   if (!sparkLayer || !anchorEl) return;
   const rect = anchorEl.getBoundingClientRect();
@@ -258,7 +266,7 @@ if (rsvpForm) {
   });
 }
 
-// opreste pianul la parasirea paginii
+// oprește pianul la parasirea paginii
 window.addEventListener("beforeunload", () => { try { melodie.pause(); } catch (_) {} });
 
 // ===== SKIP TO DETAILS + DEEP-LINK (#detalii) =====
