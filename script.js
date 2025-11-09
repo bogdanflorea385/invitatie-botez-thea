@@ -36,11 +36,11 @@ const cues = [
   { time: 64.0, index: 5 },
 ];
 
-// ===== STATE =====
+// ===== UTILS =====
+const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 let lastShownIndex = -1;
 let autoScrollOnce = false;
 
-// ===== HELPERS =====
 function setFirstLineActive() {
   if (!lines.length) return;
   lines.forEach((el) => el.classList.remove("active", "leaving"));
@@ -64,56 +64,53 @@ function resetIntroState() {
   if (h1) h1.style.opacity = 1;
 }
 
-// ===== AUTOPLAY FARA CLICK (pian -> voce) =====
-async function autoplaySequence() {
-  try {
-    // 1) pornim pianul discret
-    melodie.muted = true;
-    await melodie.play();
-    setTimeout(() => { melodie.muted = false; }, 300);
+// ===== PORNIRE CU/FARA INTERACTIUNE =====
+function playAfterUserGesture() {
+  voce.muted = true;
+  melodie.muted = true;
 
-    // 2) dupa un mic delay pornim vocea
-    setTimeout(async () => {
-      try {
-        voce.muted = false;
-        await voce.play();
-        if (tapToStart) tapToStart.style.display = "none";
-        if (h1) setTimeout(() => { h1.style.opacity = 0; }, 13000);
-      } catch {
-        // daca vocea e blocata, afisam fallback
-        if (tapToStart) tapToStart.style.display = "flex";
-      }
-    }, 700);
-  } catch {
-    // daca chiar si pianul e blocat, folosim fallback pe gest
-    if (tapToStart) tapToStart.style.display = "flex";
-  }
-}
-
-// ===== FALLBACK LA GEST =====
-function startByGesture() {
-  // pornim imediat pianul si apoi vocea
-  try { melodie.play().catch(() => {}); } catch(_) {}
-  try {
-    voce.play().then(() => {
-      if (tapToStart) tapToStart.style.display = "none";
-      if (h1) setTimeout(() => { h1.style.opacity = 0; }, 13000);
-    }).catch(() => {
-      if (tapToStart) tapToStart.style.display = "flex";
-    });
-  } catch(_) {}
+  voce.play().then(() => {
+    melodie.play().catch(() => {});
+    if (tapToStart) tapToStart.style.display = "none";
+    setTimeout(() => { voce.muted = false; melodie.muted = false; }, 600);
+    if (h1) setTimeout(() => { h1.style.opacity = 0; }, 13000);
+  }).catch(() => {
+    if (tapToStart) {
+      tapToStart.style.display = "flex";
+      tapToStart.textContent = "Apasa pentru a porni povestea 🌙";
+    }
+  });
 }
 
 // ===== INIT =====
 document.addEventListener("DOMContentLoaded", () => {
   resetIntroState();
-  autoplaySequence(); // incercare fara click pe toate device-urile
+
+  const tryAutoplay = async () => {
+    try {
+      voce.muted = true;
+      melodie.muted = true;
+
+      await voce.play();
+      await melodie.play().catch(() => {});
+
+      if (tapToStart) tapToStart.style.display = "none";
+      setTimeout(() => { voce.muted = false; melodie.muted = false; }, 600);
+      if (h1) setTimeout(() => { h1.style.opacity = 0; }, 13000);
+    } catch (err) {
+      if (tapToStart) tapToStart.style.display = "flex";
+      console.log("Autoplay blocat, asteptam interactiune:", err);
+    }
+  };
+
+  // incercam autoplay pe toate device-urile
+  tryAutoplay();
 });
 
-// re-incercare cand revii in tab (unele mobile permit apoi)
+// re-incercare cand revii in tab
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && tapToStart && tapToStart.style.display !== "none") {
-    autoplaySequence();
+    playAfterUserGesture();
   }
 });
 
@@ -121,13 +118,13 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pageshow", (e) => { if (e.persisted) resetIntroState(); });
 
 // ===== START LA TAP / ENTER / SPACE =====
+function startNarration() { playAfterUserGesture(); }
 if (tapToStart) {
-  const run = (e) => { e && e.preventDefault && e.preventDefault(); startByGesture(); };
-  tapToStart.addEventListener("click", run);
-  tapToStart.addEventListener("touchstart", run, { passive: false });
+  tapToStart.addEventListener("click", startNarration);
+  tapToStart.addEventListener("touchstart", (e) => { e.preventDefault(); startNarration(); }, { passive: false });
   document.addEventListener("keydown", (e) => {
     if (tapToStart.style.display === "none") return;
-    if (e.code === "Enter" || e.code === "Space") { e.preventDefault(); startByGesture(); }
+    if (e.code === "Enter" || e.code === "Space") { e.preventDefault(); startNarration(); }
   });
 }
 
