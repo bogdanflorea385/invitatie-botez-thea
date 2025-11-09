@@ -1,18 +1,19 @@
-from flask import Flask, request, jsonify, redirect, send_from_directory
+from flask import Flask, request, jsonify, session
+from flask_cors import CORS
 from datetime import datetime
 from pathlib import Path
-import json
-import os
+import os, json, uuid
 
 app = Flask(__name__)
-app.secret_key = "Thea2025"
+# schimba daca vrei: export FLASK_SECRET=... / pe Render setezi din Dashboard
+app.secret_key = os.environ.get("FLASK_SECRET", "Thea2025_secret")
+ADMIN_KEY = os.environ.get("ADMIN_KEY", "Thea2025")
 
-# === responses.json este la rădăcina proiectului (un nivel mai sus de /backend) ===
-BASE_DIR = Path(__file__).resolve().parents[1]   # folderul proiectului
+# ===== fisier JSON in radacina proiectului =====
+# /backend/app.py -> parintele e radacina repo-ului
+BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_FILE = BASE_DIR / "responses.json"
 
-
-# ---------- utilitare fișier ----------
 def load_data():
     if not DATA_FILE.exists():
         return []
@@ -28,95 +29,110 @@ def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+# ===== CORS =====
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
-# ---------- CORS (pentru file:// și localhost) ----------
-@app.after_request
-def add_cors_headers(resp):
-    resp.headers["Access-Control-Allow-Origin"] = "*"
-    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
-    return resp
+# ===== Health / Keep-alive =====
+@app.get("/health")
+def health():
+    return jsonify({"ok": True, "ts": datetime.utcnow().isoformat()})
 
+@app.get("/api/ping")
+def ping():
+    return jsonify({"pong": True, "ts": datetime.utcnow().isoformat()})
 
-# ---------- UX: / și /favicon.ico ca să nu mai vezi 404 ----------
-@app.route("/")
-def root():
-    return redirect("/lista")
+# ===== Auth admin =====
+@app.post("/login")
+def login():
+    body = request.get_json(silent=True) or {}
+    key = body.get("key") or request.form.get("key")
+    if key == ADMIN_KEY:
+        session["admin"] = True
+        return jsonify({"ok": True})
+    return jsonify({"error": "parola gresita"}), 403
 
-@app.route("/favicon.ico")
-def favicon():
-    ico_dir = BASE_DIR / "img"
-    ico_path = ico_dir / "favicon.ico"
-    if ico_path.exists():
-        return send_from_directory(ico_dir, "favicon.ico",
-                                   mimetype="image/vnd.microsoft.icon")
-    return ("", 204)
+@app.post("/logout")
+def logout():
+    session.pop("admin", None)
+    return jsonify({"ok": True})
 
+def is_admin():
+    # accepta si ?key=Thea2025 ca fallback
+    if session.get("admin"):
+        return True
+    if request.args.get("key") == ADMIN_KEY:
+        return True
+    return False
 
-# ---------- API ----------
-@app.route("/rsvp", methods=["POST", "OPTIONS"])
+# ===== RSVP =====
+@app.post("/rsvp")
 def rsvp():
-    if request.method == "OPTIONS":
-        return ("", 204)
+    body = request.get_json(silent=True) or {}
+    name = (body.get("name") or "").strip()
+    status = (body.get("status") or "").strip().lower()  # "particip" / "nu"
+    persons = body.get("persons")
+    note = (body.get("note") or "").strip()
+    phone = (body.get("phone") or "").strip()
 
-    payload = request.get_json(silent=True) or {}
+    if not name or status not in {"particip", "nu"}:
+        return jsonify({"error": "campuri invalide"}), 400
 
-    nume = (payload.get("nume") or "").strip()
-    prezenta = (payload.get("prezenta") or "").strip().lower()   # ex: "particip" / "nu_particip" / "da" / "nu"
-    persoane = int(payload.get("persoane") or 0)
-
-    if not nume:
-        return jsonify({"error": "Numele este obligatoriu"}), 400
-
-    # Normalizează valori diverse spre cele folosite în admin.html
-    if prezenta in ("da", "vin", "particip"):
-        prezenta = "particip"
-        if persoane <= 0:
-            persoane = 1
-    elif prezenta in ("nu", "nu_vin", "nu_particip"):
-        prezenta = "nu_particip"
-        persoane = 0
-    else:
-        prezenta = "particip"
-        if persoane <= 0:
-            persoane = 1
+    try:
+        persons = int(persons) if persons is not None else 1
+        if persons < 0:
+            persons = 0
+    except Exception:
+        persons = 1
 
     data = load_data()
-    data.append({
-        "nume": nume,
-        "prezenta": prezenta,      # "particip" | "nu_particip"
-        "persoane": persoane,      # întreg
-        "timestamp": datetime.now().isoformat(timespec="seconds")
-    })
+    entry = {
+        "id": str(uuid.uuid4()),
+        "name": name,
+        "status": status,          # "particip" sau "nu"
+        "persons": persons,        # cate persoane
+        "phone": phone,
+        "note": note,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    data.append(entry)
     save_data(data)
+    return jsonify({"ok": True, "item": entry})
 
-    # răspuns simplu; front-end-ul tău tratează oricum ok pe status 200
-    return jsonify({"ok": True, "message": "Multumim! Am inregistrat confirmarea ta ❤️"}), 200
-
-
-@app.route("/lista", methods=["GET"])
+# ===== Lista admin =====
+@app.get("/lista")
 def lista():
-    # IMPORTANT: returnăm DOAR lista, nu un obiect cu statistici
+    if not is_admin():
+        return jsonify({"error": "neautorizat"}), 403
     return jsonify(load_data())
 
-
-@app.route("/delete", methods=["POST", "OPTIONS"])
-def delete_entry():
-    if request.method == "OPTIONS":
-        return ("", 204)
-
-    payload = request.get_json(silent=True) or {}
-    idx = payload.get("index")
-
+# ===== Stergere =====
+@app.delete("/sterge/<item_id>")
+def sterge(item_id):
+    if not is_admin():
+        return jsonify({"error": "neautorizat"}), 403
     data = load_data()
-    if idx is None or not isinstance(idx, int) or idx < 0 or idx >= len(data):
-        return jsonify({"error": "index invalid"}), 400
+    new_data = [x for x in data if x.get("id") != item_id]
+    if len(new_data) == len(data):
+        return jsonify({"error": "id inexistent"}), 404
+    save_data(new_data)
+    return jsonify({"ok": True})
 
-    deleted = data.pop(idx)
-    save_data(data)
-    return jsonify({"ok": True, "deleted": deleted}), 200
-
+# ===== Statistici =====
+@app.get("/stats")
+def stats():
+    if not is_admin():
+        return jsonify({"error": "neautorizat"}), 403
+    data = load_data()
+    confirm = sum(1 for x in data if x.get("status") == "particip")
+    decline = sum(1 for x in data if x.get("status") == "nu")
+    total_persons = sum(int(x.get("persons") or 0) for x in data if x.get("status") == "particip")
+    return jsonify({
+        "confirmari": confirm,
+        "refuzuri": decline,
+        "total_persoane": total_persons,
+        "total_inregistrari": len(data),
+    })
 
 if __name__ == "__main__":
-    # rulează pe 5000 (așa vrei tu) și fără reloader ca să nu dubleze procesele
-    app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False)
+    # local dev
+    app.run(host="0.0.0.0", port=5000, debug=True)
