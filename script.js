@@ -35,28 +35,37 @@ const cues = [
   { time: 64.0, index: 5 },
 ];
 
-// ===== UTILS =====
+// ===== UTILS & STATE =====
 const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 let lastShownIndex = -1;
 let autoScrollOnce = false;
 let started = false;
-
-function ensureFromZero(audioEl) {
-  if (!audioEl) return;
-  try {
-    audioEl.pause();
-    audioEl.currentTime = 0;   // start fix
-    // pe unele browsere, un load() scurt asigură indexarea de la 0
-    if (audioEl.readyState < 2) audioEl.load();
-    audioEl.playbackRate = 1;
-  } catch (_) {}
-}
 
 function setFirstLineActive() {
   if (!lines.length) return;
   lines.forEach((el) => el.classList.remove("active", "leaving"));
   lines[0].classList.add("active");
   lastShownIndex = 0;
+}
+
+// Reset audio la 0:00 și asigură indexarea (fără muted/unmute)
+function ensureFromZero(audioEl) {
+  if (!audioEl) return;
+  try {
+    audioEl.pause();
+    audioEl.currentTime = 0;
+    if (audioEl.readyState < 2) audioEl.load();
+    audioEl.playbackRate = 1;
+  } catch (_) {}
+}
+
+// Promite când elementul e gata să redea din buffer
+function waitCanPlay(audioEl) {
+  return new Promise((resolve) => {
+    if (!audioEl) return resolve();
+    if (audioEl.readyState >= 2) return resolve();
+    audioEl.addEventListener("canplay", resolve, { once: true });
+  });
 }
 
 function resetIntroState() {
@@ -76,48 +85,44 @@ function resetIntroState() {
   started = false;
 }
 
-// ===== PLAY LOGIC (fără delay, vocea prima) =====
-async function tryAutoplayDesktop() {
-  // Vocea de la 0, fără mute/unmute, fără timeouts
+// ===== START EXACT DE LA 0 (desktop: încercare automată; mobil: la gest) =====
+async function startPlayback() {
   ensureFromZero(voce);
   ensureFromZero(melodie);
+
+  await waitCanPlay(voce); // important pentru „tăierea” primului cuvânt
   try {
-    await voce.play();                 // pornește vocea imediat
-    melodie.play().catch(() => {});    // pianul în paralel (dacă permite)
+    await voce.play();                 // pornește VOCEA exact de la 0.000
+    melodie.play().catch(() => {});    // pian paralel (dacă e permis)
     if (tapToStart) tapToStart.style.display = "none";
     started = true;
   } catch {
+    // pe unele browsere desktop tot cere gest; lăsăm overlay-ul
     if (tapToStart) tapToStart.style.display = "flex";
   }
 }
 
 function startByGesture() {
   if (started) return;
-  ensureFromZero(voce);
-  ensureFromZero(melodie);
-  voce.play().then(() => {
-    melodie.play().catch(() => {});
-    if (tapToStart) tapToStart.style.display = "none";
-    started = true;
-  }).catch(() => {
-    if (tapToStart) tapToStart.style.display = "flex";
-  });
+  startPlayback();
 }
 
 // ===== INIT =====
 document.addEventListener("DOMContentLoaded", () => {
   resetIntroState();
   if (!isTouch) {
-    tryAutoplayDesktop();
+    // Desktop: încearcă să pornească fără să piardă primul cuvânt
+    startPlayback();
   } else {
+    // Mobil: așteaptă tap
     if (tapToStart) tapToStart.style.display = "flex";
   }
 });
 
-// dacă revii în tab și încă n-a pornit, mai încearcă o dată
+// Dacă revii în tab și încă nu a pornit, mai încearcă (desktop)
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && !started) {
-    if (!isTouch) tryAutoplayDesktop();
+  if (document.visibilityState === "visible" && !started && !isTouch) {
+    startPlayback();
   }
 });
 
@@ -157,7 +162,7 @@ function setActiveLine(newIndex) {
 voce.addEventListener("timeupdate", () => {
   const t = voce.currentTime;
 
-  // titlul rămâne vizibil până la 13s
+  // Titlul vizibil până la 13s, apoi dispare
   if (h1) h1.style.opacity = t < 13 ? 1 : 0;
 
   let currentIndex = 0;
@@ -325,3 +330,43 @@ window.addEventListener("beforeunload", () => { try { melodie.pause(); } catch (
     if (location.hash === "#detalii") setTimeout(goToPage2, 60);
   });
 })();
+
+// === MENȚINE ECRANUL ACTIV (Wake Lock + fallback NoSleep) ===
+let wakeLock = null;
+let noSleep = null;
+
+async function keepAwakeOn() {
+  if ('wakeLock' in navigator) {
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+      return;
+    } catch (_) { /* fallback mai jos */ }
+  }
+  if (!noSleep) noSleep = new NoSleep();
+  try { noSleep.enable(); } catch (_) {}
+}
+
+async function keepAwakeOff() {
+  if (wakeLock) {
+    try { await wakeLock.release(); } catch (_) {}
+    wakeLock = null;
+  }
+  if (noSleep) {
+    try { noSleep.disable(); } catch (_) {}
+  }
+}
+
+// reactivează când utilizatorul revine în tab
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && voce && !voce.paused) {
+    keepAwakeOn();
+  } else {
+    keepAwakeOff();
+  }
+});
+
+// leagă de voce
+voce.addEventListener('play',  keepAwakeOn);
+voce.addEventListener('pause', keepAwakeOff);
+voce.addEventListener('ended', keepAwakeOff);
