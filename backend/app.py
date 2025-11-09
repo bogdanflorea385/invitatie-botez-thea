@@ -5,11 +5,12 @@ from pathlib import Path
 import os, json, uuid
 
 app = Flask(__name__)
-# schimba daca vrei: export FLASK_SECRET=... / pe Render setezi din Dashboard
-app.secret_key = os.environ.get("FLASK_SECRET", "Thea2025_secret")
+
+# Secret din env (pe Render l-ai numit SECRET_KEY)
+app.secret_key = os.environ.get("SECRET_KEY", "Thea2025_secret")
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "Thea2025")
 
-# ===== fisier JSON in radacina proiectului =====
+# ===== stocare JSON in radacina repo-ului =====
 # /backend/app.py -> parintele e radacina repo-ului
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_FILE = BASE_DIR / "responses.json"
@@ -30,9 +31,14 @@ def save_data(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 # ===== CORS =====
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+# Pentru inceput permitem de oriunde. Daca vrei, il restrangem la GitHub Pages mai tarziu.
+CORS(app, resources={r"/*": {"origins": "*"}})
 
-# ===== Health / Keep-alive =====
+# ===== Health =====
+@app.get("/")
+def root_health():
+    return jsonify({"status": "ok", "service": "invitatie-botez-thea-backend", "ts": datetime.utcnow().isoformat()})
+
 @app.get("/health")
 def health():
     return jsonify({"ok": True, "ts": datetime.utcnow().isoformat()})
@@ -41,7 +47,7 @@ def health():
 def ping():
     return jsonify({"pong": True, "ts": datetime.utcnow().isoformat()})
 
-# ===== Auth admin =====
+# ===== Auth admin (optional; folosim si ?key=...) =====
 @app.post("/login")
 def login():
     body = request.get_json(silent=True) or {}
@@ -57,7 +63,6 @@ def logout():
     return jsonify({"ok": True})
 
 def is_admin():
-    # accepta si ?key=Thea2025 ca fallback
     if session.get("admin"):
         return True
     if request.args.get("key") == ADMIN_KEY:
@@ -68,35 +73,51 @@ def is_admin():
 @app.post("/rsvp")
 def rsvp():
     body = request.get_json(silent=True) or {}
-    name = (body.get("name") or "").strip()
-    status = (body.get("status") or "").strip().lower()  # "particip" / "nu"
-    persons = body.get("persons")
+
+    # Acceptam atat schema veche (nume/particip/persoane), cat si cea noua (name/status/persons)
+    nume = (body.get("nume") or body.get("name") or "").strip()
+
+    # status din "particip"(bool/str) sau "status" ("particip"/"nu")
+    particip_val = body.get("particip")
+    status_str = (body.get("status") or "").strip().lower()
+
+    if status_str in {"particip", "da", "yes", "y", "true"}:
+        status = "particip"
+    elif status_str in {"nu", "no", "n", "false"}:
+        status = "nu"
+    elif isinstance(particip_val, bool):
+        status = "particip" if particip_val else "nu"
+    else:
+        status = ""
+
+    # persoane/persons
+    persoane = body.get("persoane", body.get("persons", 1))
+    try:
+        persoane = int(persoane)
+        if persoane < 0:
+            persoane = 0
+    except Exception:
+        persoane = 1
+
     note = (body.get("note") or "").strip()
     phone = (body.get("phone") or "").strip()
 
-    if not name or status not in {"particip", "nu"}:
+    if not nume or status not in {"particip", "nu"}:
         return jsonify({"error": "campuri invalide"}), 400
-
-    try:
-        persons = int(persons) if persons is not None else 1
-        if persons < 0:
-            persons = 0
-    except Exception:
-        persons = 1
 
     data = load_data()
     entry = {
         "id": str(uuid.uuid4()),
-        "name": name,
-        "status": status,          # "particip" sau "nu"
-        "persons": persons,        # cate persoane
+        "nume": nume,
+        "status": status,           # "particip" sau "nu"
+        "persoane": persoane,       # cate persoane
         "phone": phone,
         "note": note,
         "timestamp": datetime.utcnow().isoformat()
     }
     data.append(entry)
     save_data(data)
-    return jsonify({"ok": True, "item": entry})
+    return jsonify({"ok": True, "item": entry}), 201
 
 # ===== Lista admin =====
 @app.get("/lista")
@@ -125,7 +146,7 @@ def stats():
     data = load_data()
     confirm = sum(1 for x in data if x.get("status") == "particip")
     decline = sum(1 for x in data if x.get("status") == "nu")
-    total_persons = sum(int(x.get("persons") or 0) for x in data if x.get("status") == "particip")
+    total_persons = sum(int(x.get("persoane") or 0) for x in data if x.get("status") == "particip")
     return jsonify({
         "confirmari": confirm,
         "refuzuri": decline,
@@ -134,5 +155,4 @@ def stats():
     })
 
 if __name__ == "__main__":
-    # local dev
     app.run(host="0.0.0.0", port=5000, debug=True)
