@@ -61,19 +61,37 @@ function resetIntroState() {
     tapToStart.textContent = "Apasa pentru a porni povestea 🌙";
   }
   setFirstLineActive();
-  if (h1) h1.style.opacity = 1;
+  if (h1) { h1.style.opacity = 1; h1.style.transition = "opacity 800ms ease"; }
 }
 
-// ===== PORNIRE CU/FARA INTERACTIUNE =====
-function playAfterUserGesture() {
-  voce.muted = true;
-  melodie.muted = true;
+// ===== AUTOPLAY + FALLBACK =====
+async function tryAutoplay() {
+  try {
+    // pornim pianul întâi
+    melodie.muted = true;
+    await melodie.play();
+    setTimeout(() => { melodie.muted = false; }, 300);
 
+    // apoi vocea
+    setTimeout(async () => {
+      try {
+        await voce.play();
+        if (tapToStart) tapToStart.style.display = "none";
+      } catch {
+        if (tapToStart) tapToStart.style.display = "flex";
+      }
+    }, 600);
+  } catch (err) {
+    if (tapToStart) tapToStart.style.display = "flex";
+    console.log("Autoplay blocat, asteptam interactiune:", err);
+  }
+}
+
+function playAfterUserGesture() {
+  // fallback la gestul utilizatorului
+  try { melodie.play().catch(() => {}); } catch(_) {}
   voce.play().then(() => {
-    melodie.play().catch(() => {});
     if (tapToStart) tapToStart.style.display = "none";
-    setTimeout(() => { voce.muted = false; melodie.muted = false; }, 600);
-    if (h1) setTimeout(() => { h1.style.opacity = 0; }, 13000);
   }).catch(() => {
     if (tapToStart) {
       tapToStart.style.display = "flex";
@@ -85,32 +103,13 @@ function playAfterUserGesture() {
 // ===== INIT =====
 document.addEventListener("DOMContentLoaded", () => {
   resetIntroState();
-
-  const tryAutoplay = async () => {
-    try {
-      voce.muted = true;
-      melodie.muted = true;
-
-      await voce.play();
-      await melodie.play().catch(() => {});
-
-      if (tapToStart) tapToStart.style.display = "none";
-      setTimeout(() => { voce.muted = false; melodie.muted = false; }, 600);
-      if (h1) setTimeout(() => { h1.style.opacity = 0; }, 13000);
-    } catch (err) {
-      if (tapToStart) tapToStart.style.display = "flex";
-      console.log("Autoplay blocat, asteptam interactiune:", err);
-    }
-  };
-
-  // incercam autoplay pe toate device-urile
   tryAutoplay();
 });
 
 // re-incercare cand revii in tab
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && tapToStart && tapToStart.style.display !== "none") {
-    playAfterUserGesture();
+    tryAutoplay();
   }
 });
 
@@ -128,7 +127,7 @@ if (tapToStart) {
   });
 }
 
-// ===== SINCRONIZARE TEXT PE AUDIO =====
+// ===== SINCRONIZARE TEXT + TITLU PE AUDIO =====
 function setActiveLine(newIndex) {
   if (!lines.length) return;
   if (newIndex === lastShownIndex) return;
@@ -152,6 +151,16 @@ function setActiveLine(newIndex) {
 
 voce.addEventListener("timeupdate", () => {
   const t = voce.currentTime;
+
+  // titlul: vizibil pana la 13s, apoi fade-out controlat
+  if (h1) {
+    if (t < 13) {
+      h1.style.opacity = 1;
+    } else if (h1.style.opacity !== "0") {
+      h1.style.opacity = 0;
+    }
+  }
+
   let currentIndex = 0;
   for (let i = 0; i < cues.length; i++) {
     if (t >= cues[i].time) currentIndex = cues[i].index;
