@@ -1,18 +1,40 @@
-// ===== AUDIO DIN DOM =====
-const voce    = document.getElementById("voceThea");
-const melodie = document.getElementById("bgPiano");
-try { melodie.volume = 0.3; } catch (_) {}
+// =========================
+// CONFIG BACKEND (Render)
+// =========================
+const BACKEND = "https://invitatie-botez-thea.onrender.com"; // foloseste fix acest URL
 
-// ===== ELEMENTE =====
-const intro       = document.getElementById("intro");
-const pagina2     = document.getElementById("pagina2");
-const tapToStart  = document.getElementById("tapToStart");
-const storyText   = document.querySelector(".story-text");
-const h1          = document.querySelector(".story-overlay h1");
-const starsLayer  = document.getElementById("starsLayer");
+// =========================
+// UTILS DOM
+// =========================
+const $ = (sel) => document.querySelector(sel);
+const byId = (id) => document.getElementById(id);
+const getVal = (...ids) => {
+  for (const id of ids) {
+    const el = byId(id);
+    if (el && typeof el.value !== "undefined") return el.value;
+  }
+  return "";
+};
 
-// ===== STRAT SCÂNTEI =====
-let sparkLayer = document.getElementById("sparkLayer");
+// =========================
+// AUDIO DIN DOM (optional)
+// =========================
+const voce    = byId("voceThea");
+const melodie = byId("bgPiano");
+try { if (melodie) melodie.volume = 0.3; } catch (_) {}
+
+// =========================
+// ELEMENTE & STRATURI
+// =========================
+const intro      = byId("intro");
+const pagina2    = byId("pagina2");
+const tapToStart = byId("tapToStart");
+const storyText  = $(".story-text");
+const h1         = $(".story-overlay h1");
+const starsLayer = byId("starsLayer");
+
+// Strat scantei (lazy create)
+let sparkLayer = byId("sparkLayer");
 if (!sparkLayer) {
   sparkLayer = document.createElement("div");
   sparkLayer.id = "sparkLayer";
@@ -22,10 +44,10 @@ if (!sparkLayer) {
   document.body.appendChild(sparkLayer);
 }
 
-// ===== PARAGRAFE =====
+// =========================
+/* TEXT NARATIV (cues) */
+// =========================
 const lines = storyText ? Array.from(storyText.querySelectorAll(".story-line")) : [];
-
-// ===== TIMPI (secunde) → index =====
 const cues = [
   { time: 13.0, index: 0 },
   { time: 13.0, index: 1 },
@@ -35,12 +57,14 @@ const cues = [
   { time: 64.0, index: 5 },
 ];
 
-// ===== UTILS & STATE =====
 const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 let lastShownIndex = -1;
 let autoScrollOnce = false;
 let started = false;
 
+// =========================
+// INIT & PLAYBACK CONTROL
+// =========================
 function setFirstLineActive() {
   if (!lines.length) return;
   lines.forEach((el) => el.classList.remove("active", "leaving"));
@@ -48,7 +72,6 @@ function setFirstLineActive() {
   lastShownIndex = 0;
 }
 
-// Reset audio la 0:00 și asigură indexarea (fără muted/unmute)
 function ensureFromZero(audioEl) {
   if (!audioEl) return;
   try {
@@ -59,7 +82,6 @@ function ensureFromZero(audioEl) {
   } catch (_) {}
 }
 
-// Promite când elementul e gata să redea din buffer
 function waitCanPlay(audioEl) {
   return new Promise((resolve) => {
     if (!audioEl) return resolve();
@@ -85,19 +107,17 @@ function resetIntroState() {
   started = false;
 }
 
-// ===== START EXACT DE LA 0 (desktop: încercare automată; mobil: la gest) =====
 async function startPlayback() {
   ensureFromZero(voce);
   ensureFromZero(melodie);
 
-  await waitCanPlay(voce); // important pentru „tăierea” primului cuvânt
+  await waitCanPlay(voce);
   try {
-    await voce.play();                 // pornește VOCEA exact de la 0.000
-    melodie.play().catch(() => {});    // pian paralel (dacă e permis)
+    await voce?.play();
+    melodie?.play?.();
     if (tapToStart) tapToStart.style.display = "none";
     started = true;
   } catch {
-    // pe unele browsere desktop tot cere gest; lăsăm overlay-ul
     if (tapToStart) tapToStart.style.display = "flex";
   }
 }
@@ -107,84 +127,62 @@ function startByGesture() {
   startPlayback();
 }
 
-// ===== INIT =====
 document.addEventListener("DOMContentLoaded", () => {
   resetIntroState();
-  if (!isTouch) {
-    // Desktop: încearcă să pornească fără să piardă primul cuvânt
-    startPlayback();
-  } else {
-    // Mobil: așteaptă tap
-    if (tapToStart) tapToStart.style.display = "flex";
-  }
+  if (!isTouch) startPlayback();
+  else if (tapToStart) tapToStart.style.display = "flex";
 });
 
-// Dacă revii în tab și încă nu a pornit, mai încearcă (desktop)
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && !started && !isTouch) {
-    startPlayback();
-  }
+  if (document.visibilityState === "visible" && !started && !isTouch) startPlayback();
 });
-
-// iOS bfcache
 window.addEventListener("pageshow", (e) => { if (e.persisted) resetIntroState(); });
 
-// ===== START LA TAP / ENTER / SPACE =====
-// ===== START LA TAP / ENTER / SPACE (unified, single-run) =====
-function userStartOnce(e) {
-  if (started) return;
-  started = true;
-
-  // curăță listener-ele ca să nu ceară încă un tap
-  if (tapToStart) {
-    tapToStart.removeEventListener("pointerdown", userStartOnce);
-    tapToStart.removeEventListener("click", userStartOnce);
-  }
-  document.removeEventListener("keydown", keyStartOnce);
-
-  // pornește SINCRON exact de la 0
-  try { voce.pause(); melodie.pause(); } catch(_) {}
-  try { voce.currentTime = 0; melodie.currentTime = 0; } catch(_){}
-  try { if (voce.readyState < 2) voce.load(); } catch(_){}
-  try { if (melodie.readyState < 2) melodie.load(); } catch(_){}
-
-  const p1 = voce.play();
-  const p2 = melodie.play();
-
-  Promise.allSettled([p1, p2]).then(res => {
-    const ok = res.some(r => r.status === "fulfilled");
-    if (ok) {
-      if (tapToStart) tapToStart.style.display = "none";
-    } else {
-      // dacă a fost blocat, permitem încă un tap
-      started = false;
-      if (tapToStart) tapToStart.style.display = "flex";
-      attachStartListeners();
-    }
-  });
-}
-
+// Single-run handlers
 function keyStartOnce(e) {
   if (tapToStart && tapToStart.style.display === "none") return;
   if (e.code === "Enter" || e.code === "Space") {
     e.preventDefault();
-    userStartOnce(e);
+    userStartOnce();
   }
 }
-
 function attachStartListeners() {
   if (!tapToStart) return;
-  // pointerdown acoperă touch + mouse (evită dublu-tap)
   tapToStart.addEventListener("pointerdown", userStartOnce, { once: false });
-  // fallback dacă nu există pointer events
   tapToStart.addEventListener("click", userStartOnce, { once: false });
   document.addEventListener("keydown", keyStartOnce);
 }
+function userStartOnce() {
+  if (started) return;
+  started = true;
 
-// inițializează listener-ele dacă overlay-ul e vizibil
+  tapToStart?.removeEventListener("pointerdown", userStartOnce);
+  tapToStart?.removeEventListener("click", userStartOnce);
+  document.removeEventListener("keydown", keyStartOnce);
+
+  try { voce?.pause(); melodie?.pause(); } catch(_) {}
+  try { if (voce) voce.currentTime = 0; if (melodie) melodie.currentTime = 0; } catch(_){}
+  if (voce && voce.readyState < 2) try { voce.load(); } catch(_){}
+  if (melodie && melodie.readyState < 2) try { melodie.load(); } catch(_){}
+
+  const p1 = voce?.play?.();
+  const p2 = melodie?.play?.();
+
+  Promise.allSettled([p1, p2]).then(res => {
+    const ok = res.some(r => r && r.status === "fulfilled");
+    if (ok) tapToStart && (tapToStart.style.display = "none");
+    else {
+      started = false;
+      tapToStart && (tapToStart.style.display = "flex");
+      attachStartListeners();
+    }
+  });
+}
 if (tapToStart) attachStartListeners();
 
-// ===== SINCRONIZARE TEXT + TITLU =====
+// =========================
+// SINCRONIZARE TEXT + TITLU
+// =========================
 function setActiveLine(newIndex) {
   if (!lines.length) return;
   if (newIndex === lastShownIndex) return;
@@ -204,21 +202,21 @@ function setActiveLine(newIndex) {
   lastShownIndex = newIndex;
 }
 
-voce.addEventListener("timeupdate", () => {
-  const t = voce.currentTime;
-
-  // Titlul vizibil până la 13s, apoi dispare
+voce?.addEventListener("timeupdate", () => {
+  const t = voce.currentTime || 0;
   if (h1) h1.style.opacity = t < 13 ? 1 : 0;
 
   let currentIndex = 0;
-  for (let i = 0; i < cues.length; i++) {
-    if (t >= cues[i].time) currentIndex = cues[i].index;
-  }
+  for (let i = 0; i < cues.length; i++) if (t >= cues[i].time) currentIndex = cues[i].index;
   setActiveLine(currentIndex);
 });
 
-// ===== TRANZIȚIE LA PAGINA 2 =====
-voce.addEventListener("ended", () => {
+// =========================
+// TRANZITIE LA PAGINA 2
+// =========================
+voce?.addEventListener("ended", () => goToPage2());
+
+function goToPage2(){
   if (intro) intro.classList.add("fade-out");
   setTimeout(() => {
     if (intro)  { intro.style.display = "none"; intro.classList.remove("fade-out"); }
@@ -249,9 +247,11 @@ voce.addEventListener("ended", () => {
       }, 1500);
     }
   }, 2000);
-});
+}
 
-// ===== SCÂNTEI =====
+// =========================
+// SCANTEI
+// =========================
 function createSparks(anchorEl) {
   if (!sparkLayer || !anchorEl) return;
   const rect = anchorEl.getBoundingClientRect();
@@ -274,7 +274,9 @@ function createSparks(anchorEl) {
   }
 }
 
-// ===== STELE =====
+// =========================
+// STELE
+// =========================
 function createStar(){
   if (!starsLayer) return;
   const star=document.createElement("div");
@@ -286,137 +288,109 @@ function createStar(){
 }
 (function loopStars(){ createStar(); setTimeout(loopStars, 800+Math.random()*1800); })();
 
-// ===== FORMULAR RSVP =====
-// ===== FORMULAR RSVP =====
-const rsvpForm = document.getElementById("rsvp-form");
+// =========================
+// FORMULAR RSVP (corectat)
+// =========================
+const rsvpForm = byId("rsvp-form"); // <form id="rsvp-form">...</form>
+
+async function postJSON(url, body, tries = 2) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+        // nu folosi "no-cors"
+      });
+      if (r.ok) return r;
+      const txt = await r.text().catch(() => "");
+      throw new Error(`HTTP ${r.status} ${txt}`);
+    } catch (e) {
+      if (i === tries - 1) throw e;              // dupa ultimul retry, propaga
+      await new Promise(res => setTimeout(res, 4000)); // retry la cold-start Render
+    }
+  }
+}
+
 if (rsvpForm) {
   rsvpForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const numeEl = document.getElementById("nume");
-    const persEl = document.getElementById("persoane");
-    const prezEl = document.getElementById("prezenta");
+    // Accepta mai multe denumiri de campuri din HTML
+    const nume      = (getVal("nume", "name") || "").trim();
+    const persoaneV = (getVal("numar_persoane", "persoane", "persons") || "1").trim();
+    const prezRaw   = (getVal("prezenta", "status") || "").trim().toLowerCase();
+    const note      = (getVal("note", "mesaj") || "").trim();
+    const phone     = (getVal("phone", "telefon") || "").trim();
 
-    const nume = (numeEl?.value || "").trim();
-    const persoane = parseInt(persEl?.value || "1", 10);
-    const prezentaRaw = (prezEl?.value || "").trim().toLowerCase();
+    const persoane = Number.parseInt(persoaneV, 10);
+    // mapare robusta: da/particip/particip, nu/non
+    const status = ["da", "particip", "participa", "participi"].includes(prezRaw) ? "particip"
+                  : ["nu", "nu particip", "nu_particip"].includes(prezRaw)        ? "nu"
+                  : (prezRaw === "particip" ? "particip" : (prezRaw === "nu" ? "nu" : ""));
 
-    // normalizare: "particip" / "nu"
-    const status =
-      prezentaRaw === "particip" || prezentaRaw === "participi" || prezentaRaw === "da"
-        ? "particip"
-        : "nu";
-
-    if (!nume || !status) {
-      alert("Te rog completeaza numele si daca vii sau nu.");
-      return;
-    }
-
-    console.log("RSVP trimis:", { name: nume, persons: persoane, status });
+    if (!nume) { alert("Te rog completeaza numele."); return; }
+    if (!Number.isFinite(persoane) || persoane < 1) { alert("Alege numarul de persoane."); return; }
+    if (!status) { alert("Alege daca participi."); return; }
 
     try {
-      const resp = await fetch("https://invitatie-botez-thea.onrender.com/rsvp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: nume, persons: persoane, status }),
-      });
-
+      const resp = await postJSON(`${BACKEND}/rsvp`, { nume, persoane, status, note, phone });
       const data = await resp.json().catch(() => ({}));
-      console.log("Raspuns server:", resp.status, data);
 
-      if (resp.ok && (data.ok || data.success)) {
-        const msg = document.getElementById("rsvp-msg");
-        if (msg) {
-          msg.style.display = "block";
-          msg.textContent = "Multumim! Am inregistrat confirmarea ta.";
-        } else {
-          alert("Multumim! Am inregistrat confirmarea ta.");
-        }
-        rsvpForm.reset();
+      const msg = byId("rsvp-msg");
+      if (msg) {
+        msg.style.display = "block";
+        msg.textContent = "Multumim! Confirmarea a fost trimisa.";
       } else {
-        alert(`Nu am putut trimite confirmarea (cod ${resp.status}).`);
+        alert("Multumim! Confirmarea a fost trimisa.");
       }
+      rsvpForm.reset();
     } catch (err) {
-      console.error(err);
-      alert("Serverul nu raspunde (verifica conexiunea).");
+      console.error("RSVP error:", err);
+      alert("Nu am putut trimite. Verifica conexiunea sau backend-ul. " + (err?.message || ""));
     }
   });
 }
 
-// oprește pianul la parasirea paginii
-window.addEventListener("beforeunload", () => { try { melodie.pause(); } catch (_) {} });
-
-// ===== SKIP TO DETAILS + DEEP-LINK (#detalii) =====
+// =========================
+// SKIP TO DETAILS + #detalii
+// =========================
 (function(){
-  const btnSkip  = document.getElementById("skipToDetails");
-  const voceEl   = document.getElementById("voceThea");
-  const pianEl   = document.getElementById("bgPiano");
-  const introEl  = document.getElementById("intro");
-  const pagina2El= document.getElementById("pagina2");
-  const tapStart = document.getElementById("tapToStart");
+  const btnSkip  = byId("skipToDetails");
 
-  function goToPage2(){
-    try { if (voceEl) { voceEl.pause(); voceEl.currentTime = 0; } } catch(_){}
-    if (tapStart) tapStart.style.display = "none";
-
-    if (introEl) introEl.classList.add("fade-out");
-    setTimeout(() => {
-      if (introEl)  { introEl.style.display = "none"; introEl.classList.remove("fade-out"); }
-      if (pagina2El){ pagina2El.style.display = "block"; pagina2El.classList.add("fade-in"); }
-      document.body.classList.remove("lock-scroll");
-      try { window.scrollTo({ top: 0, behavior: "instant" }); } catch (_){ window.scrollTo(0,0); }
-
-      if (location.hash !== "#detalii") {
-        try { history.replaceState(null, "", "#detalii"); } catch(_){}
-      }
-      if (pianEl && pianEl.paused) { try { pianEl.play(); } catch(_) {} }
-
-      if (!window.__autoScrollOnceInvoked) {
-        window.__autoScrollOnceInvoked = true;
-        setTimeout(() => {
-          const startY = window.scrollY;
-          const endY = Math.max(0, document.body.scrollHeight - window.innerHeight);
-          if (endY <= startY + 2) return;
-
-          const duration = 8500;
-          const startTime = performance.now();
-          const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
-
-          function smoothScroll(now){
-            const elapsed  = now - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased    = easeOutCubic(progress);
-            const currentY = startY + (endY - startY) * eased;
-            window.scrollTo(0, currentY);
-            if (progress < 1) requestAnimationFrame(smoothScroll);
-          }
-          requestAnimationFrame(smoothScroll);
-        }, 1500);
-      }
-    }, 2000);
+  function goToDetails(){
+    try { if (voce) { voce.pause(); voce.currentTime = 0; } } catch(_){}
+    if (tapToStart) tapToStart.style.display = "none";
+    goToPage2();
+    if (location.hash !== "#detalii") {
+      try { history.replaceState(null, "", "#detalii"); } catch(_){}
+    }
+    if (melodie && melodie.paused) { try { melodie.play(); } catch(_) {} }
   }
 
-  if (btnSkip) btnSkip.addEventListener("click", goToPage2);
-
+  btnSkip?.addEventListener("click", goToDetails);
   window.addEventListener("DOMContentLoaded", () => {
-    if (location.hash === "#detalii") setTimeout(goToPage2, 60);
+    if (location.hash === "#detalii") setTimeout(goToDetails, 60);
   });
 })();
 
-// === MENȚINE ECRANUL ACTIV (Wake Lock + fallback NoSleep) ===
+// =========================
+// WAKE LOCK (optional)
+// =========================
 let wakeLock = null;
 let noSleep = null;
 
 async function keepAwakeOn() {
-  if ('wakeLock' in navigator) {
+  if ("wakeLock" in navigator) {
     try {
-      wakeLock = await navigator.wakeLock.request('screen');
-      wakeLock.addEventListener('release', () => { wakeLock = null; });
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
       return;
-    } catch (_) { /* fallback mai jos */ }
+    } catch (_) {}
   }
-  if (!noSleep) noSleep = new NoSleep();
-  try { noSleep.enable(); } catch (_) {}
+  // fallback doar daca NoSleep exista
+  if (!noSleep && typeof NoSleep !== "undefined") noSleep = new NoSleep();
+  try { noSleep?.enable?.(); } catch (_) {}
 }
 
 async function keepAwakeOff() {
@@ -424,21 +398,18 @@ async function keepAwakeOff() {
     try { await wakeLock.release(); } catch (_) {}
     wakeLock = null;
   }
-  if (noSleep) {
-    try { noSleep.disable(); } catch (_) {}
-  }
+  try { noSleep?.disable?.(); } catch (_) {}
 }
 
-// reactivează când utilizatorul revine în tab
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && voce && !voce.paused) {
-    keepAwakeOn();
-  } else {
-    keepAwakeOff();
-  }
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && voce && !voce.paused) keepAwakeOn();
+  else keepAwakeOff();
 });
+voce?.addEventListener("play",  keepAwakeOn);
+voce?.addEventListener("pause", keepAwakeOff);
+voce?.addEventListener("ended", keepAwakeOff);
 
-// leagă de voce
-voce.addEventListener('play',  keepAwakeOn);
-voce.addEventListener('pause', keepAwakeOff);
-voce.addEventListener('ended', keepAwakeOff);
+// =========================
+// HOUSEKEEPING
+// =========================
+window.addEventListener("beforeunload", () => { try { melodie?.pause?.(); } catch (_) {} });

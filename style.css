@@ -138,7 +138,7 @@ body{
 /* ===== Zoom-out controlat pe 3 carduri =====
    folosim < 100% ca să “îndepărtăm” cadrul; media query revine la cover pe ecrane mici */
 .card-biserica::before{background-size:52% auto; background-position:50% 18%; background-color:#000}
-.card-parinti::before{ background-size:88% auto; background-position:50% 50%; background-color:#000}
+.card-parinti::before{ background-size:55% auto; background-position:50% 50%; background-color:#000}
 .card-nasii::before{   background-size:88% auto; background-position:50% 40%; background-color:#000}
 
 @media (max-width:700px){

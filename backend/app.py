@@ -4,15 +4,40 @@ from datetime import datetime
 from pathlib import Path
 import os, json, uuid, threading
 
+# ================== Config ==================
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "Thea2025_secret")
-ADMIN_KEY   = os.environ.get("ADMIN_KEY", "Thea2025")
 
-# ===== stocare JSON in radacina repo-ului =====
-BASE_DIR  = Path(__file__).resolve().parents[1]     # /repo (parintele lui /backend)
+app.secret_key = os.environ.get("SECRET_KEY", "Thea2025_secret")
+ADMIN_KEY      = os.environ.get("ADMIN_KEY", "Thea2025")
+
+# Originea reală a site-ului tău pe GitHub Pages (fără path-uri)
+GHP_ORIGIN = "https://bogdanflorea385.github.io"
+
+# Permite CORS DOAR din GitHub Pages
+CORS(
+    app,
+    resources={r"/*": {"origins": [GHP_ORIGIN]}},
+    supports_credentials=False,
+)
+
+# Răspuns unitar la toate cererile (inclusiv preflight)
+@app.after_request
+def add_cors_headers(resp):
+    resp.headers["Access-Control-Allow-Origin"]  = GHP_ORIGIN
+    resp.headers["Access-Control-Allow-Methods"] = "GET,POST,DELETE,OPTIONS"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return resp
+
+# Handler generic pentru preflight (OPTIONS) – înainte de orice altă rută
+@app.route("/<path:_any>", methods=["OPTIONS"])
+def any_options(_any):
+    return ("", 204)
+
+# ================== Stocare pe disc ==================
+# /backend/app.py  -> parents[1] = rădăcina repo-ului (unde păstrezi responses.json)
+BASE_DIR  = Path(__file__).resolve().parents[1]
 DATA_FILE = BASE_DIR / "responses.json"
 
-# lock pentru scriere concurenta
 _lock = threading.Lock()
 
 def load_data():
@@ -30,25 +55,14 @@ def save_data(data):
     tmp = DATA_FILE.with_suffix(DATA_FILE.suffix + ".tmp")
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, DATA_FILE)  # atomic
+    os.replace(tmp, DATA_FILE)
 
-# CORS (pentru inceput, permis de oriunde)
-CORS(app, resources={r"/*": {"origins": "*"}})
-
-# ===== utils conversie sigura =====
+# ================== Utilitare ==================
 TRUE_SET  = {"true", "1", "y", "yes", "da", "particip", "vin"}
 FALSE_SET = {"false", "0", "n", "no", "nu", "nu_particip", "nu_vin"}
 
 def coerce_status(body):
-    """
-    Accepta oricare dintre:
-      - participare: bool / "true"/"false"
-      - particip:    bool / "true"/"false"
-      - status:      "particip"/"nu" sau "da"/"nu"
-      - prezenta:    "da"/"nu"
-    Returneaza: "particip" / "nu" / "" (daca nu se poate determina)
-    """
-    # 1) bool direct
+    # 1) bool / numeric pe cheile 'participare' sau 'particip'
     for key in ("participare", "particip"):
         if key in body:
             v = body.get(key)
@@ -61,7 +75,7 @@ def coerce_status(body):
                 if s in TRUE_SET:  return "particip"
                 if s in FALSE_SET: return "nu"
 
-    # 2) stringuri
+    # 2) string pe 'status' sau 'prezenta'
     for key in ("status", "prezenta"):
         if key in body and isinstance(body.get(key), str):
             s = body.get(key, "").strip().lower()
@@ -73,13 +87,11 @@ def coerce_status(body):
 def coerce_int(v, default=1, min_value=0):
     try:
         n = int(v)
-        if n < min_value:
-            return min_value
-        return n
+        return n if n >= min_value else min_value
     except Exception:
         return default
 
-# ===== Health =====
+# ================== Health ==================
 @app.get("/")
 def root_health():
     return jsonify({"status": "ok", "service": "invitatie-botez-thea-backend", "ts": datetime.utcnow().isoformat()})
@@ -92,7 +104,7 @@ def health():
 def ping():
     return jsonify({"pong": True, "ts": datetime.utcnow().isoformat()})
 
-# ===== Auth (optional: sesiune sau ?key=) =====
+# ================== Auth (admin) ==================
 @app.post("/login")
 def login():
     body = request.get_json(silent=True) or {}
@@ -114,28 +126,22 @@ def is_admin():
         return True
     return False
 
-# ===== RSVP =====
-@app.post("/rsvp")
+# ================== RSVP ==================
+@app.route("/rsvp", methods=["POST", "OPTIONS"])
 def rsvp():
-    # important: nu folosim force=True; daca headerul e gresit, intoarcem eroare explicita
+    if request.method == "OPTIONS":
+        return ("", 204)
+
     body = request.get_json(silent=True)
     if body is None:
         return jsonify({"error": "Content-Type application/json lipsa sau JSON invalid"}), 400
 
-    # nume
-    nume = (body.get("nume") or body.get("name") or "").strip()
-
-    # status robust
-    status = coerce_status(body)
-
-    # persoane (accepta "persoane" sau "persons")
+    nume    = (body.get("nume") or body.get("name") or "").strip()
+    status  = coerce_status(body)
     persoane = coerce_int(body.get("persoane", body.get("persons", 1)), default=1, min_value=0)
+    phone   = (body.get("phone")  or body.get("telefon") or "").strip()
+    note    = (body.get("note")   or body.get("mesaj")   or "").strip()
 
-    # campuri optionale
-    phone = (body.get("phone") or body.get("telefon") or "").strip()
-    note  = (body.get("note")  or body.get("mesaj")   or "").strip()
-
-    # validare
     if not nume:
         return jsonify({"error": "camp 'nume' lipsa"}), 400
     if status not in {"particip", "nu"}:
@@ -161,14 +167,13 @@ def rsvp():
 
     return jsonify({"ok": True, "item": entry}), 201
 
-# ===== Lista =====
+# ================== Lista / Stergere / Statistici ==================
 @app.get("/lista")
 def lista():
     if not is_admin():
         return jsonify({"error": "neautorizat"}), 403
     return jsonify(load_data())
 
-# ===== Stergere =====
 @app.delete("/sterge/<item_id>")
 def sterge(item_id):
     if not is_admin():
@@ -181,7 +186,6 @@ def sterge(item_id):
         save_data(new_data)
     return jsonify({"ok": True})
 
-# ===== Statistici =====
 @app.get("/stats")
 def stats():
     if not is_admin():
@@ -198,5 +202,5 @@ def stats():
     })
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # compatibil Render
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
