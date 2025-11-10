@@ -287,41 +287,59 @@ function createStar(){
 (function loopStars(){ createStar(); setTimeout(loopStars, 800+Math.random()*1800); })();
 
 // ===== FORMULAR RSVP =====
+// ===== FORMULAR RSVP =====
 const rsvpForm = document.getElementById("rsvp-form");
 if (rsvpForm) {
   rsvpForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const nume = document.getElementById("nume").value.trim();
-    const persoane = document.getElementById("persoane").value;
-    const prezenta = document.getElementById("prezenta").value;
-    if (!nume || !prezenta) { alert("Te rog completeaza numele si daca vii sau nu."); return; }
-    try {
-  const resp = await fetch("https://invitatie-botez-thea.onrender.com/rsvp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: nume,
-      persons: persoane,
-      status: prezenta
-    }),
-  });
 
-  const data = await resp.json();
+    const numeEl = document.getElementById("nume");
+    const persEl = document.getElementById("persoane");
+    const prezEl = document.getElementById("prezenta");
 
-  if (resp.ok && (data.ok || data.success)) {
-    const msg = document.getElementById("rsvp-msg");
-    if (msg) {
-      msg.style.display = "block";
-      msg.textContent = "Multumim! Am inregistrat confirmarea ta.";
+    const nume = (numeEl?.value || "").trim();
+    const persoane = parseInt(persEl?.value || "1", 10);
+    const prezentaRaw = (prezEl?.value || "").trim().toLowerCase();
+
+    // normalizare: "particip" / "nu"
+    const status =
+      prezentaRaw === "particip" || prezentaRaw === "participi" || prezentaRaw === "da"
+        ? "particip"
+        : "nu";
+
+    if (!nume || !status) {
+      alert("Te rog completeaza numele si daca vii sau nu.");
+      return;
     }
-    rsvpForm.reset();
-  } else {
-    alert("Nu am putut trimite confirmarea.");
-  }
-} catch (err) {
-  console.error(err);
-  alert("Serverul nu raspunde (verifica conexiunea).");
-}
+
+    console.log("RSVP trimis:", { name: nume, persons: persoane, status });
+
+    try {
+      const resp = await fetch("https://invitatie-botez-thea.onrender.com/rsvp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nume, persons: persoane, status }),
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      console.log("Raspuns server:", resp.status, data);
+
+      if (resp.ok && (data.ok || data.success)) {
+        const msg = document.getElementById("rsvp-msg");
+        if (msg) {
+          msg.style.display = "block";
+          msg.textContent = "Multumim! Am inregistrat confirmarea ta.";
+        } else {
+          alert("Multumim! Am inregistrat confirmarea ta.");
+        }
+        rsvpForm.reset();
+      } else {
+        alert(`Nu am putut trimite confirmarea (cod ${resp.status}).`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Serverul nu raspunde (verifica conexiunea).");
+    }
   });
 }
 
