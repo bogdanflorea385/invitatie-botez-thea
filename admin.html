@@ -1,192 +1,48 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="UTF-8">
-  <title>Admin RSVP</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f3f0ff; }
-    h1 { margin: 0 0 10px 0; }
-    .topbar { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
-    .stat { background: #fff; padding: 8px 14px; border-radius: 10px; margin-right: 6px; font-size: 13px; }
-    table { border-collapse: collapse; width: 100%; background: #fff; }
-    th, td { border: 1px solid #ddd; padding: 8px; font-size: 14px; }
-    th { background: #ede5ff; }
-    button.del { background: #ff9090; border: none; color: #fff; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-    button.del:hover { background: #ff6b6b; }
-    #adminContent { display: none; }
-    #loginBox { background: #fff; max-width: 320px; margin: 100px auto; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; }
-    #loginBox input[type="password"] { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; margin-bottom: 10px; text-align: center; }
-    #loginBox button { width: 100%; padding: 10px; background: #b28efc; color: white; border: none; border-radius: 10px; cursor: pointer; }
-    #loginBox button:hover { background: #a27ef0; }
-    .remember { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 13px; color: #555; justify-content:center; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin RSVP – Thea</title>
+  <link rel="stylesheet" href="admin.css?v=20251110"/>
 </head>
 <body>
-
-  <!-- LOGIN -->
-  <div id="loginBox">
-    <h2>Acces Admin</h2>
-    <input type="password" id="parola" placeholder="Introdu parola" />
-    <label class="remember">
-      <input type="checkbox" id="rememberMe" /> Ține-mă minte
-    </label>
-    <button id="btnLogin">Autentificare</button>
-    <p id="err" style="color:red;display:none;margin-top:8px;">Parola incorectă!</p>
-  </div>
-
-  <!-- ADMIN CONTENT -->
-  <div id="adminContent">
-    <div class="topbar">
-      <h1>Lista confirmări</h1>
-      <div>
-        <span class="stat" id="totalInvitati">Total înregistrări: 0</span>
-        <span class="stat" id="totalParticipa">Participă: 0 pers.</span>
-      </div>
+  <header class="bar">
+    <h1>RSVP – Administrare</h1>
+    <div class="tools">
+      <input id="search" type="search" placeholder="Cauta nume / status / telefon"/>
+      <button id="btnRefresh">Reincarca</button>
+      <button id="btnExport">Export CSV</button>
     </div>
+  </header>
 
-    <table>
+  <section class="stats">
+    <div><b>Confirmari:</b> <span id="stConfirm">0</span></div>
+    <div><b>Refuzuri:</b> <span id="stRefuz">0</span></div>
+    <div><b>Total persoane (confirmate):</b> <span id="stPers">0</span></div>
+    <div><b>Total inregistrari:</b> <span id="stTotal">0</span></div>
+  </section>
+
+  <main>
+    <table class="grid" id="tbl">
       <thead>
         <tr>
           <th>#</th>
           <th>Nume</th>
-          <th>Participare</th>
+          <th>Status</th>
           <th>Persoane</th>
-          <th>La</th>
-          <th>Acțiuni</th>
+          <th>Telefon</th>
+          <th>Note</th>
+          <th>Timp</th>
+          <th>Actiuni</th>
         </tr>
       </thead>
-      <tbody id="tBody"></tbody>
+      <tbody id="tbody">
+        <tr><td colspan="8" style="text-align:center">Se incarca…</td></tr>
+      </tbody>
     </table>
-  </div>
+  </main>
 
-  <script>
-    // ====== SETĂRI ======
-  const PAROLA_ADMIN = "Thea2025";
-const STORAGE_KEY  = "admin_thea_ok";
-const ADMIN_KEY    = "Thea2025";
-
-// Forțează local:
-const API_BASE = "http://127.0.0.1:5000";
-
-    // ====== LOGIN/UI ======
-    function showAdmin() {
-      document.getElementById("loginBox").style.display = "none";
-      document.getElementById("adminContent").style.display = "block";
-      loadData();
-    }
-
-    function checkPass() {
-      const val = (document.getElementById("parola").value || "").trim();
-      const err = document.getElementById("err");
-      const remember = document.getElementById("rememberMe").checked;
-
-      if (val === PAROLA_ADMIN) {
-        if (remember) localStorage.setItem(STORAGE_KEY, "1");
-        showAdmin();
-      } else {
-        err.style.display = "block";
-      }
-    }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      // buton login
-      document.getElementById("btnLogin").addEventListener("click", checkPass);
-      // enter pentru parolă
-      document.getElementById("parola").addEventListener("keydown", e => {
-        if (e.key === "Enter") checkPass();
-      });
-
-      // auto-login dacă e memorat
-      if (localStorage.getItem(STORAGE_KEY) === "1") showAdmin();
-    });
-
-    // ====== HELPERS ======
-    function fmtDate(iso) {
-      if (!iso) return "";
-      const d = new Date(iso);
-      return isNaN(d.getTime()) ? iso : d.toLocaleString("ro-RO");
-    }
-
-    // ====== API ======
-    async function loadData() {
-      try {
-        const r = await fetch(`${API_BASE}/lista?key=${encodeURIComponent(ADMIN_KEY)}`);
-        if (!r.ok) throw new Error("Lista 403/500");
-        const data = await r.json();
-        renderTable(Array.isArray(data) ? data : []);
-        await loadStats();
-      } catch (e) {
-        console.error(e);
-        alert("Nu pot încărca lista. Verifică dacă backend-ul rulează pe 127.0.0.1:5000.");
-      }
-    }
-
-    async function loadStats() {
-      try {
-        const r = await fetch(`${API_BASE}/stats?key=${encodeURIComponent(ADMIN_KEY)}`);
-        if (!r.ok) throw new Error("Stats 403/500");
-        const s = await r.json();
-        document.getElementById("totalInvitati").textContent  = `Total înregistrări: ${s.total_inregistrari ?? 0}`;
-        document.getElementById("totalParticipa").textContent = `Participă: ${s.total_persoane ?? 0} pers.`;
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    async function deleteEntry(id) {
-      if (!id) return;
-      if (!confirm("Sigur vrei să ștergi această înregistrare?")) return;
-
-      try {
-        const r = await fetch(`${API_BASE}/sterge/${encodeURIComponent(id)}?key=${encodeURIComponent(ADMIN_KEY)}`, { method: "DELETE" });
-        if (!r.ok) {
-          const er = await r.json().catch(()=> ({}));
-          throw new Error(er.error || "Ștergere eșuată");
-        }
-        loadData();
-      } catch (e) {
-        console.error(e);
-        alert("Nu am putut șterge înregistrarea.");
-      }
-    }
-
-    // ====== TABEL ======
-    function renderTable(data) {
-      const tb = document.getElementById("tBody");
-      tb.innerHTML = "";
-
-      if (data.length === 0) {
-        tb.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#666;">Nicio înregistrare</td></tr>`;
-        return;
-      }
-
-      let totalPersLocal = 0;
-
-      data.forEach((item, idx) => {
-        const name    = item.name   || "";
-        const status  = (item.status || "").toLowerCase(); // "particip" / "nu"
-        const persons = parseInt(item.persons || 0, 10) || 0;
-        const ts      = fmtDate(item.timestamp);
-        const id      = item.id;
-
-        if (status === "particip") totalPersLocal += persons;
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${idx + 1}</td>
-          <td>${name}</td>
-          <td>${status === "particip" ? "✅ particip" : "❌ nu"}</td>
-          <td>${persons}</td>
-          <td>${ts}</td>
-          <td><button class="del" onclick="deleteEntry('${id}')">Șterge</button></td>
-        `;
-        tb.appendChild(tr);
-      });
-
-      // reflectăm și calculul local (statistica oficială vine din /stats)
-      document.getElementById("totalParticipa").textContent = `Participă: ${totalPersLocal} pers.`;
-    }
-  </script>
+  <script src="admin.js?v=20251110" defer></script>
 </body>
 </html>
