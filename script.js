@@ -345,6 +345,16 @@ if (rsvpForm) {
         alert("Multumim! Confirmarea a fost trimisa.");
       }
       rsvpForm.reset();
+      // === OPRIRE AUDIO ===
+try {
+  const piano = document.getElementById("bgPiano");
+  const voce  = document.getElementById("voceThea");
+  if (piano) { piano.pause(); piano.currentTime = 0; }
+  if (voce)  { voce.pause(); voce.currentTime = 0; }
+} catch (err) {
+  console.warn("Nu s-a putut opri audio:", err);
+}
+
     } catch (err) {
       console.error("RSVP error:", err);
       alert("Nu am putut trimite. Verifica conexiunea sau backend-ul. " + (err?.message || ""));
