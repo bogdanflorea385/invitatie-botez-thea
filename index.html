@@ -4,7 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Invitatie botez Thea</title>
-  <link rel="stylesheet" href="style.css" />
+
+  <!-- Cache-busting pentru GitHub Pages -->
+  <link rel="stylesheet" href="style.css?v=20251110b" />
 </head>
 <body>
 
@@ -13,16 +15,16 @@
 
     <!-- ===== AUDIO VOCE ===== -->
     <audio id="voceThea" preload="auto" playsinline>
-      <source src="audio/voce-thea.mp3" type="audio/mpeg" />
+      <source src="audio/voce-thea.mp3?v=20251110b" type="audio/mpeg" />
     </audio>
 
     <!-- ===== AUDIO PIAN BACKGROUND ===== -->
     <audio id="bgPiano" preload="auto" loop playsinline>
-      <source src="audio/pian.mp3" type="audio/mpeg" />
+      <source src="audio/pian.mp3?v=20251110b" type="audio/mpeg" />
     </audio>
 
     <!-- imaginea de fundal -->
-    <img src="img/fundal-thea.png" alt="Fundal Thea" class="intro-bg" />
+    <img src="img/fundal-thea.png?v=20251110b" alt="Fundal Thea" class="intro-bg" />
 
     <!-- overlay poveste cu text fix -->
     <div class="story-overlay">
@@ -60,11 +62,11 @@
     <button id="skipToDetails" class="skip-btn" aria-label="Sari la Pagina 2">Sari la detalii</button>
 
     <!-- overlay pornire audio -->
-    <div class="tap-to-start" id="tapToStart">Apasa pentru a porni povestea 🌙</div>
+    <div class="tap-to-start" id="tapToStart">Apasa pentru a porni povestea</div>
   </section>
 
   <!-- ===== PAGINA 2: detalii botez ===== -->
-  <main class="pagina2" id="pagina2">
+  <main class="pagina2" id="pagina2" style="display:none;">
     <div class="grid-wrap">
 
       <div class="top-cards">
@@ -93,7 +95,7 @@
             <h2>Parintii</h2>
             <p>Bogdan si Georgiana</p>
             <p>Frati: Angelo si Erika</p>
-            <p>🤍 Cu drag va asteptam!</p>
+            <p>Cu drag va asteptam!</p>
           </div>
         </div>
 
@@ -111,7 +113,7 @@
         <h2>Confirma prezenta</h2>
 
         <div class="rsvp-hero">
-          <img src="img/confirmare.png" alt="Confirmare prezenta" />
+          <img src="img/confirmare.png?v=20251110b" alt="Confirmare prezenta" />
         </div>
 
         <form id="rsvp-form" autocomplete="on" novalidate>
@@ -135,82 +137,24 @@
             <option value="nu">Nu pot participa</option>
           </select>
 
-          <button type="submit">Trimite confirmarea</button>
+          <button type="submit" id="btnTrimite">Trimite confirmarea</button>
         </form>
 
         <p id="rsvp-msg" style="display:none;"></p>
         <p class="subnote">
-          Micuta Thea va fi primita cu dragoste si lumina,
-          iar prezenta ta ar insemna mult pentru noi.
+          Micuta Thea va fi primita cu dragoste si lumina, iar prezenta ta ar insemna mult pentru noi.
           Te rugam sa confirmi participarea pentru a ne putea organiza cat mai bine.
-          Cu drag, parintii Theei 💖
+          Cu drag, parintii Theei.
         </p>
       </section>
 
     </div>
   </main>
 
-  <!-- JS existente -->
+  <!-- Librarie pentru wake lock fallback -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
-  <script src="script.js"></script>
 
-  <!-- Handler trimitere RSVP (compatibil cu backend-ul actual) -->
-  <script>
-    // PUNE aici URL-ul REAL de pe Render (HTTPS), ex: https://invitatia-thea-backend.onrender.com
-    const BACKEND = "https://invitatia-thea-backend.onrender.com";
-
-    const form  = document.getElementById("rsvp-form");
-    const msgEl = document.getElementById("rsvp-msg");
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const nume        = document.getElementById("nume").value.trim();
-      const persoaneRaw = document.getElementById("numar_persoane").value;
-      const persoane    = Math.max(1, parseInt(persoaneRaw, 10) || 1);
-      const prezentaVal = document.getElementById("prezenta").value; // "da" / "nu"
-
-      if (!nume)        { alert("Te rog completeaza numele."); return; }
-      if (!prezentaVal) { alert("Alege daca participi.");     return; }
-
-      // Trimitem dublu pentru compatibilitate sigura cu app.py:
-      const participareBool = (prezentaVal === "da");
-      const statusStr       = participareBool ? "particip" : "nu";
-
-      const payload = {
-        nume,
-        persoane,
-        participare: participareBool, // bool
-        status: statusStr             // "particip" / "nu"
-      };
-
-      try {
-        const resp = await fetch(`${BACKEND}/rsvp`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          mode: "cors",
-          credentials: "omit",
-          body: JSON.stringify(payload)
-        });
-
-        const text = await resp.text();
-        let data;
-        try { data = JSON.parse(text); } catch { data = { raw: text }; }
-
-        if (!resp.ok) {
-          console.error("Eroare RSVP:", resp.status, data);
-          alert(`Eroare la trimitere (${resp.status}). Detalii: ${text}`);
-          return;
-        }
-
-        form.reset();
-        msgEl.textContent = "Multumim! Confirmarea a fost trimisa.";
-        msgEl.style.display = "block";
-      } catch (err) {
-        console.error(err);
-        alert("Nu am putut trimite. Verifica conexiunea sau backend-ul.");
-      }
-    });
-  </script>
+  <!-- LOGICA site-ului (foloseste BACKEND din script.js) -->
+  <script src="script.js?v=20251110b" defer></script>
 </body>
 </html>
