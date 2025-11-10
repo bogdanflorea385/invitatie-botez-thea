@@ -24,91 +24,70 @@
     <!-- imaginea de fundal -->
     <img src="img/fundal-thea.png" alt="Fundal Thea" class="intro-bg" />
 
-    <!-- overlay poveste cu text fix in acelasi loc -->
+    <!-- overlay poveste cu text fix -->
     <div class="story-overlay">
       <h1>Lumina dintre Apus si Rasarit</h1>
-
-      <!-- ZONA FIXA pentru rotirea paragrafelor -->
       <div class="story-text">
         <p class="story-line active">
           Se spune ca Thea, in mitologia greaca, era zeita vederii si stralucirii,
           cea care dadea aurului, argintului si pietrelor pretioase lumina lor.
         </p>
-
         <p class="story-line">
           Intr-un tarziu de zi, cand Soarele isi incheia calatoria,
           revarsand pe bolta un potop de culori calde,
           Thea a ales sa vina pe lume. Apusul acela magic a fost prima ei promisiune –
           aceea ca va aduce lumina chiar si in ceasul cel mai tainic.
         </p>
-
         <p class="story-line">
           Acum, in zorii vietii sale spirituale, Thea este Rasaritul nostru.
           Ea este licarirea care ne sopteste ca fiecare zi aduce un nou inceput,
           o noua speranta, o noua minune.
         </p>
-
         <p class="story-line">
           Va invitam sa fiti martori la unirea dintre Cer si Pamant, cand,
           prin Sfanta Taina, vom pecetlui drumul in credinta al micutei noastre.
           Veniti sa ne bucuram impreuna de lumina pe care ea a adus-o in vietile noastre!
         </p>
-
-        <p class="story-line">
-          Va invitam cu sufletul plin de emotie la botezul fiicei noastre.
-        </p>
-
-        <p class="story-line">
-          Cu drag, familia noastra va asteapta sa ne fiti alaturi.
-        </p>
+        <p class="story-line">Va invitam cu sufletul plin de emotie la botezul fiicei noastre.</p>
+        <p class="story-line">Cu drag, familia noastra va asteapta sa ne fiti alaturi.</p>
       </div>
     </div>
 
-    <!-- stele cazatoare jos -->
+    <!-- stele cazatoare -->
     <div class="stars-layer" id="starsLayer"></div>
 
-    <!-- BUTON: sari direct la Pagina 2 -->
+    <!-- BUTON: sari la Pagina 2 -->
     <button id="skipToDetails" class="skip-btn" aria-label="Sari la Pagina 2">Sari la detalii</button>
 
     <!-- overlay pornire audio -->
-    <div class="tap-to-start" id="tapToStart">
-      Apasa pentru a porni povestea 🌙
-    </div>
+    <div class="tap-to-start" id="tapToStart">Apasa pentru a porni povestea 🌙</div>
   </section>
 
   <!-- ===== PAGINA 2: detalii botez ===== -->
   <main class="pagina2" id="pagina2">
     <div class="grid-wrap">
 
-      <!-- CARDURI SUS (biserica / restaurant / parinti / nasi) -->
       <div class="top-cards">
-        <!-- Biserica -->
         <div class="card card-biserica">
           <div class="card-content">
             <h2>Ceremonia religioasa</h2>
             <p><strong>Biserica „Sfantul Ioan Iacob Hozevitul”</strong></p>
             <p>📅 10.01.2026</p>
             <p>⏰ ora: (in curs de stabilire)</p>
-            <p>📍 <a href="https://maps.app.goo.gl/ecCrp8TH9TSZnWq66" target="_blank">
-              Strada Gheorghe Petrascu 57, Bucuresti
-            </a></p>
+            <p>📍 <a href="https://maps.app.goo.gl/ecCrp8TH9TSZnWq66" target="_blank">Strada Gheorghe Petrascu 57, Bucuresti</a></p>
           </div>
         </div>
 
-        <!-- Restaurant -->
         <div class="card card-restaurant">
           <div class="card-content">
             <h2>Petrecerea</h2>
             <p><strong>Restaurant Emporium Events</strong></p>
             <p>📅 10.01.2026</p>
             <p>⏰ ora: (in curs de stabilire)</p>
-            <p>📍 <a href="https://maps.app.goo.gl/o9t4FVNoc6MDMFm4A" target="_blank">
-              Bulevardul Basarabia 45, Bucuresti
-            </a></p>
+            <p>📍 <a href="https://maps.app.goo.gl/o9t4FVNoc6MDMFm4A" target="_blank">Bulevardul Basarabia 45, Bucuresti</a></p>
           </div>
         </div>
 
-        <!-- Parintii -->
         <div class="card card-parinti">
           <div class="card-content">
             <h2>Parintii</h2>
@@ -118,7 +97,6 @@
           </div>
         </div>
 
-        <!-- Nasii -->
         <div class="card card-nasii">
           <div class="card-content">
             <h2>Nasii</h2>
@@ -132,30 +110,23 @@
       <section class="rsvp card-box">
         <h2>Confirma prezenta</h2>
 
-        <!-- Imagine decorativa -->
         <div class="rsvp-hero">
           <img src="img/confirmare.png" alt="Confirmare prezenta" />
         </div>
 
-        <form id="rsvp-form">
+        <form id="rsvp-form" autocomplete="on" novalidate>
           <label for="nume">Nume</label>
           <input type="text" id="nume" name="nume" required />
 
           <label for="numar_persoane">Numar persoane</label>
-<select id="numar_persoane" name="numar_persoane" required>
-  <option value="">Alege numarul de persoane</option>
-  <option value="1">1</option>
-  <option value="2">2</option>
-  <option value="3">3</option>
-  <option value="4">4</option>
-  <option value="5">5</option>
-  <option value="6">6</option>
-  <option value="7">7</option>
-  <option value="8">8</option>
-  <option value="9">9</option>
-  <option value="10">10</option>
-</select>
-
+          <select id="numar_persoane" name="numar_persoane" required>
+            <option value="">Alege numarul de persoane</option>
+            <option value="1">1</option><option value="2">2</option>
+            <option value="3">3</option><option value="4">4</option>
+            <option value="5">5</option><option value="6">6</option>
+            <option value="7">7</option><option value="8">8</option>
+            <option value="9">9</option><option value="10">10</option>
+          </select>
 
           <label for="prezenta">Participi?</label>
           <select id="prezenta" name="prezenta" required>
@@ -179,8 +150,67 @@
     </div>
   </main>
 
-  <!-- DOAR fișierul JS, fără alte scripturi inline -->
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
+  <!-- JS existente -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
   <script src="script.js"></script>
+
+  <!-- Handler trimitere RSVP (compatibil cu backend-ul actual) -->
+  <script>
+    // PUNE aici URL-ul REAL de pe Render (HTTPS), ex: https://invitatia-thea-backend.onrender.com
+    const BACKEND = "https://invitatia-thea-backend.onrender.com";
+
+    const form  = document.getElementById("rsvp-form");
+    const msgEl = document.getElementById("rsvp-msg");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const nume        = document.getElementById("nume").value.trim();
+      const persoaneRaw = document.getElementById("numar_persoane").value;
+      const persoane    = Math.max(1, parseInt(persoaneRaw, 10) || 1);
+      const prezentaVal = document.getElementById("prezenta").value; // "da" / "nu"
+
+      if (!nume)        { alert("Te rog completeaza numele."); return; }
+      if (!prezentaVal) { alert("Alege daca participi.");     return; }
+
+      // Trimitem dublu pentru compatibilitate sigura cu app.py:
+      const participareBool = (prezentaVal === "da");
+      const statusStr       = participareBool ? "particip" : "nu";
+
+      const payload = {
+        nume,
+        persoane,
+        participare: participareBool, // bool
+        status: statusStr             // "particip" / "nu"
+      };
+
+      try {
+        const resp = await fetch(`${BACKEND}/rsvp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          mode: "cors",
+          credentials: "omit",
+          body: JSON.stringify(payload)
+        });
+
+        const text = await resp.text();
+        let data;
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+
+        if (!resp.ok) {
+          console.error("Eroare RSVP:", resp.status, data);
+          alert(`Eroare la trimitere (${resp.status}). Detalii: ${text}`);
+          return;
+        }
+
+        form.reset();
+        msgEl.textContent = "Multumim! Confirmarea a fost trimisa.";
+        msgEl.style.display = "block";
+      } catch (err) {
+        console.error(err);
+        alert("Nu am putut trimite. Verifica conexiunea sau backend-ul.");
+      }
+    });
+  </script>
 </body>
 </html>
