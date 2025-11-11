@@ -289,7 +289,7 @@ function createStar(){
 (function loopStars(){ createStar(); setTimeout(loopStars, 800+Math.random()*1800); })();
 
 // =========================
-// FORMULAR RSVP (corectat)
+// FORMULAR RSVP (corectat) — PASUL 2
 // =========================
 const rsvpForm = byId("rsvp-form"); // <form id="rsvp-form">...</form>
 
@@ -306,7 +306,7 @@ async function postJSON(url, body, tries = 2) {
       const txt = await r.text().catch(() => "");
       throw new Error(`HTTP ${r.status} ${txt}`);
     } catch (e) {
-      if (i === tries - 1) throw e;              // dupa ultimul retry, propaga
+      if (i === tries - 1) throw e;
       await new Promise(res => setTimeout(res, 4000)); // retry la cold-start Render
     }
   }
@@ -320,11 +320,14 @@ if (rsvpForm) {
     const nume      = (getVal("nume", "name") || "").trim();
     const persoaneV = (getVal("numar_persoane", "persoane", "persons") || "1").trim();
     const prezRaw   = (getVal("prezenta", "status") || "").trim().toLowerCase();
+
+    // PASUL 2: preluam mesajul si il trimitem ca 'note'
     const note      = (getVal("note", "mesaj") || "").trim();
+
+    // (optional) telefon — daca exista in formular
     const phone     = (getVal("phone", "telefon") || "").trim();
 
     const persoane = Number.parseInt(persoaneV, 10);
-    // mapare robusta: da/particip/particip, nu/non
     const status = ["da", "particip", "participa", "participi"].includes(prezRaw) ? "particip"
                   : ["nu", "nu particip", "nu_particip"].includes(prezRaw)        ? "nu"
                   : (prezRaw === "particip" ? "particip" : (prezRaw === "nu" ? "nu" : ""));
@@ -334,6 +337,7 @@ if (rsvpForm) {
     if (!status) { alert("Alege daca participi."); return; }
 
     try {
+      // PASUL 2: 'note' inclus in payload
       const resp = await postJSON(`${BACKEND}/rsvp`, { nume, persoane, status, note, phone });
       const data = await resp.json().catch(() => ({}));
 
@@ -345,15 +349,16 @@ if (rsvpForm) {
         alert("Multumim! Confirmarea a fost trimisa.");
       }
       rsvpForm.reset();
+
       // === OPRIRE AUDIO ===
-try {
-  const piano = document.getElementById("bgPiano");
-  const voce  = document.getElementById("voceThea");
-  if (piano) { piano.pause(); piano.currentTime = 0; }
-  if (voce)  { voce.pause(); voce.currentTime = 0; }
-} catch (err) {
-  console.warn("Nu s-a putut opri audio:", err);
-}
+      try {
+        const piano = document.getElementById("bgPiano");
+        const voce  = document.getElementById("voceThea");
+        if (piano) { piano.pause(); piano.currentTime = 0; }
+        if (voce)  { voce.pause(); voce.currentTime = 0; }
+      } catch (err) {
+        console.warn("Nu s-a putut opri audio:", err);
+      }
 
     } catch (err) {
       console.error("RSVP error:", err);

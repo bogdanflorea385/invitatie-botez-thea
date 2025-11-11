@@ -60,6 +60,7 @@ async function loadStats(key){
   }
 }
 
+// === Render Table (Pasul 4 – afiseaza note) ===
 function render(){
   const term = (q.value || "").trim().toLowerCase();
   let rows = ALL;
@@ -89,7 +90,7 @@ function render(){
         <td>${badge}</td>
         <td>${x.persoane ?? ""}</td>
         <td>${x.phone ?? ""}</td>
-        <td>${x.note ?? ""}</td>
+        <td>${x.note ?? ""}</td> <!-- Pasul 4: afiseaza mesajul pentru parinti -->
         <td>${x.timestamp?.replace("T"," ").slice(0,19) || ""}</td>
         <td class="actions"><button data-del="${x.id}">Sterge</button></td>
       </tr>
@@ -116,7 +117,7 @@ tbody.addEventListener("click", async (e)=>{
   loadStats(key).catch(()=>{});
 });
 
-// === Export CSV ===
+// === Export CSV (Pasul 4 – include coloana note) ===
 $("#btnExport").addEventListener("click", ()=>{
   const rows = [
     ["id","nume","status","persoane","telefon","note","timestamp"].map(csvEscape).join(",")

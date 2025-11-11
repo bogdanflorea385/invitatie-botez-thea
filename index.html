@@ -117,10 +117,11 @@
         </div>
 
         <form id="rsvp-form" autocomplete="on" novalidate>
-          <label for="nume">Nume</label>
+          <!-- Pasul 1: emoji la etichete + mesaj pentru parinti -->
+          <label for="nume">👤 Nume</label>
           <input type="text" id="nume" name="nume" required />
 
-          <label for="numar_persoane">Numar persoane</label>
+          <label for="numar_persoane">👪 Numar persoane</label>
           <select id="numar_persoane" name="numar_persoane" required>
             <option value="">Alege numarul de persoane</option>
             <option value="1">1</option><option value="2">2</option>
@@ -130,12 +131,16 @@
             <option value="9">9</option><option value="10">10</option>
           </select>
 
-          <label for="prezenta">Participi?</label>
+          <label for="prezenta">🎉🎶💕 Participi?</label>
           <select id="prezenta" name="prezenta" required>
             <option value="">Alege o optiune</option>
             <option value="da">Particip</option>
             <option value="nu">Nu pot participa</option>
           </select>
+
+          <label for="mesaj">💌 Mesaj pentru parinti (optional)</label>
+          <textarea id="mesaj" name="mesaj" rows="2" placeholder="Scrie un gand frumos sau o urare..."></textarea>
+          <!-- /Pasul 1 -->
 
           <button type="submit" id="btnTrimite">Trimite confirmarea</button>
         </form>
