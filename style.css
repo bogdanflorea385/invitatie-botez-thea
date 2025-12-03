@@ -281,8 +281,8 @@ body{
 .event-info {
   position: fixed;
   top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 18px;
+  left: auto;
   z-index: 999;
   padding: 10px 16px;
   border-radius: 16px;
@@ -290,7 +290,7 @@ body{
   backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
   gap: 6px;
   font-size: 13px;
   color: #ffffff;
@@ -301,7 +301,7 @@ body{
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 4px;
 }
 
@@ -362,13 +362,12 @@ body{
 @media (max-width: 600px) {
   .event-info {
     top: 10px;
-    left: 12px;
+    left: 8px;
     right: auto;
-    transform: none;
     padding: 8px 10px;
     gap: 4px;
     font-size: 11px;
-    align-items: flex-start; /* aliniere la stanga */
+    align-items: flex-start;
   }
 
   .countdown {
