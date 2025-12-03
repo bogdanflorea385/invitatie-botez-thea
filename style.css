@@ -358,6 +358,17 @@ body{
   box-shadow: 0 0 14px rgba(255, 255, 255, 0.5);
   transform: translateY(-1px) scale(1.03);
 }
+/* Link brand inline în aceeași linie cu ora */
+.inline-brand {
+  margin-left: 10px;
+  padding: 2px 8px;
+  font-size: 12px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 12px;
+  color: rgba(255,255,255,0.9);
+  text-decoration: none;
+}
+
 
 /* Layout special pe telefoane (sa nu acopere titlul) */
 @media (max-width: 600px) {
