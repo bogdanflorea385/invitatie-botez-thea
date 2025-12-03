@@ -428,3 +428,40 @@ voce?.addEventListener("ended", keepAwakeOff);
 // HOUSEKEEPING
 // =========================
 window.addEventListener("beforeunload", () => { try { melodie?.pause?.(); } catch (_) {} });
+
+// =====================
+// COUNTDOWN INVITATIE
+// =====================
+
+// Data evenimentului: 10 ianuarie 2026, ora 16:00 (fus orar Romania, UTC+2 iarna)
+const eventDate = new Date("2026-01-10T16:00:00+02:00");
+
+function updateCountdown() {
+  const now = new Date();
+  const diffMs = eventDate - now;
+
+  const daysEl = document.getElementById("cd-days");
+  const hoursEl = document.getElementById("cd-hours");
+
+  // Daca elementele nu exista inca in pagina, iesim
+  if (!daysEl || !hoursEl) return;
+
+  // Daca am trecut deja de data evenimentului
+  if (diffMs <= 0) {
+    daysEl.textContent = "00";
+    hoursEl.textContent = "00";
+    return;
+  }
+
+  const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+
+  daysEl.textContent = String(days).padStart(2, "0");
+  hoursEl.textContent = String(hours).padStart(2, "0");
+}
+
+// Rulam o data imediat dupa incarcare
+updateCountdown();
+// Apoi actualizam la fiecare minut
+setInterval(updateCountdown, 60 * 1000);
