@@ -274,3 +274,110 @@ body{
   resize: vertical;
   min-height: 60px;
 }
+/* ================== */
+/* COUNTDOWN + BRAND  */
+/* ================== */
+
+.event-info {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 999;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+}
+
+.countdown {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.count-label {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-right: 4px;
+}
+
+#cd-days,
+#cd-hours {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.cd-unit {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-left: 2px;
+}
+
+.event-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.clock-icon {
+  font-size: 15px;
+}
+
+.time-label {
+  font-weight: 500;
+}
+
+/* Link brand, discret dar vizibil */
+.brand-link {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 999;
+  font-size: 12px;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  letter-spacing: 0.03em;
+  text-transform: lowercase;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.brand-link:hover {
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px) scale(1.02);
+}
+
+/* Un pic mai mic pe telefoane */
+@media (max-width: 600px) {
+  .event-info {
+    top: 12px;
+    right: 12px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  #cd-days,
+  #cd-hours {
+    font-size: 13px;
+  }
+
+  .brand-link {
+    bottom: 12px;
+    right: 12px;
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+}
