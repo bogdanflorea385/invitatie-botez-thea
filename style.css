@@ -281,7 +281,8 @@ body{
 .event-info {
   position: fixed;
   top: 18px;
-  right: 18px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 999;
   padding: 10px 16px;
   border-radius: 16px;
@@ -289,7 +290,7 @@ body{
   backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 6px;
   font-size: 13px;
   color: #ffffff;
@@ -300,7 +301,7 @@ body{
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 4px;
 }
 
@@ -338,52 +339,40 @@ body{
   font-weight: 500;
 }
 
-/* Link brand sub countdown */
-.brand-link {
-  margin-top: 2px;
+/* Link brand pe aceeasi linie cu ora */
+.inline-brand {
+  margin-left: 10px;
+  padding: 2px 8px;
   font-size: 11px;
-  text-decoration: none;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
   color: rgba(255, 255, 255, 0.9);
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  letter-spacing: 0.05em;
-  text-transform: lowercase;
+  text-decoration: none;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.brand-link:hover {
+.inline-brand:hover {
   background: rgba(255, 255, 255, 0.18);
   box-shadow: 0 0 14px rgba(255, 255, 255, 0.5);
   transform: translateY(-1px) scale(1.03);
 }
-/* Link brand inline în aceeași linie cu ora */
-.inline-brand {
-  margin-left: 10px;
-  padding: 2px 8px;
-  font-size: 12px;
-  background: rgba(255,255,255,0.12);
-  border-radius: 12px;
-  color: rgba(255,255,255,0.9);
-  text-decoration: none;
-}
-
 
 /* Layout special pe telefoane (sa nu acopere titlul) */
 @media (max-width: 600px) {
   .event-info {
-    top: 8px;
-    left: 8px;
+    top: 10px;
+    left: 12px;
     right: auto;
+    transform: none;
     padding: 8px 10px;
     gap: 4px;
     font-size: 11px;
-    align-items: flex-start;   /* aliniere la stanga */
+    align-items: flex-start; /* aliniere la stanga */
   }
 
   .countdown {
-    justify-content: flex-start;  /* textul incepe din stanga */
+    justify-content: flex-start;
   }
 
   #cd-days,
@@ -393,9 +382,8 @@ body{
     font-size: 13px;
   }
 
-  .brand-link {
+  .inline-brand {
     font-size: 10px;
     padding: 2px 6px;
-    align-self: flex-start;   /* linkul ramane sub countdown, la stanga */
   }
 }
