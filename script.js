@@ -433,8 +433,8 @@ window.addEventListener("beforeunload", () => { try { melodie?.pause?.(); } catc
 // COUNTDOWN INVITATIE
 // =====================
 
-// Data evenimentului: 10 ianuarie 2026, ora 16:00 (fus orar Romania, UTC+2 iarna)
-const eventDate = new Date("2026-01-10T16:00:00+02:00");
+// Data evenimentului: 10 ianuarie 2026, ora 17:00 (fus orar Romania, UTC+2 iarna)
+const eventDate = new Date("2026-01-10T17:00:00+02:00");
 
 function updateCountdown() {
   const now = new Date();
@@ -442,26 +442,32 @@ function updateCountdown() {
 
   const daysEl = document.getElementById("cd-days");
   const hoursEl = document.getElementById("cd-hours");
+  const minutesEl = document.getElementById("cd-minutes");
+  const secondsEl = document.getElementById("cd-seconds");
 
-  // Daca elementele nu exista inca in pagina, iesim
-  if (!daysEl || !hoursEl) return;
+  if (!daysEl || !hoursEl || !minutesEl || !secondsEl) return;
 
-  // Daca am trecut deja de data evenimentului
   if (diffMs <= 0) {
     daysEl.textContent = "00";
     hoursEl.textContent = "00";
+    minutesEl.textContent = "00";
+    secondsEl.textContent = "00";
     return;
   }
 
-  const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const days = Math.floor(totalHours / 24);
-  const hours = totalHours % 24;
+  const totalSeconds = Math.floor(diffMs / 1000);
+  const days = Math.floor(totalSeconds / (24 * 60 * 60));
+  const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60));
+  const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+  const seconds = totalSeconds % 60;
 
   daysEl.textContent = String(days).padStart(2, "0");
   hoursEl.textContent = String(hours).padStart(2, "0");
+  minutesEl.textContent = String(minutes).padStart(2, "0");
+  secondsEl.textContent = String(seconds).padStart(2, "0");
 }
 
 // Rulam o data imediat dupa incarcare
 updateCountdown();
-// Apoi actualizam la fiecare minut
-setInterval(updateCountdown, 60 * 1000);
+// Apoi actualizam la fiecare secunda
+setInterval(updateCountdown, 1000);

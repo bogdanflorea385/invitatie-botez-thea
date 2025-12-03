@@ -283,32 +283,37 @@ body{
   top: 18px;
   right: 18px;
   z-index: 999;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(10px);
+  padding: 10px 16px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
   font-size: 13px;
   color: #ffffff;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.45);
 }
 
 .countdown {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
+  justify-content: flex-end;
   gap: 4px;
 }
 
 .count-label {
   font-size: 11px;
-  opacity: 0.85;
+  opacity: 0.9;
   margin-right: 4px;
 }
 
 #cd-days,
-#cd-hours {
+#cd-hours,
+#cd-minutes,
+#cd-seconds {
   font-weight: 600;
   font-size: 15px;
 }
@@ -323,61 +328,56 @@ body{
   display: flex;
   align-items: center;
   gap: 6px;
-  padding-left: 10px;
-  border-left: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .clock-icon {
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .time-label {
   font-weight: 500;
 }
 
-/* Link brand, discret dar vizibil */
+/* Link brand sub countdown */
 .brand-link {
-  position: fixed;
-  bottom: 18px;
-  right: 18px;
-  z-index: 999;
-  font-size: 12px;
+  margin-top: 2px;
+  font-size: 11px;
   text-decoration: none;
   color: rgba(255, 255, 255, 0.9);
-  padding: 6px 12px;
+  padding: 3px 8px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
-  letter-spacing: 0.03em;
+  background: rgba(255, 255, 255, 0.08);
+  letter-spacing: 0.05em;
   text-transform: lowercase;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .brand-link:hover {
   background: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
-  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px) scale(1.03);
 }
 
-/* Un pic mai mic pe telefoane */
+/* Un pic mai compact pe telefoane */
 @media (max-width: 600px) {
   .event-info {
     top: 12px;
     right: 12px;
-    padding: 6px 10px;
+    padding: 8px 10px;
+    gap: 4px;
     font-size: 11px;
   }
 
   #cd-days,
-  #cd-hours {
+  #cd-hours,
+  #cd-minutes,
+  #cd-seconds {
     font-size: 13px;
   }
 
   .brand-link {
-    bottom: 12px;
-    right: 12px;
-    font-size: 11px;
-    padding: 5px 10px;
+    font-size: 10px;
+    padding: 2px 6px;
   }
 }
