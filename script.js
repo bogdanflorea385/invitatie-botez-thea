@@ -23,6 +23,51 @@ const voce    = byId("voceThea");
 const melodie = byId("bgPiano");
 try { if (melodie) melodie.volume = 0.3; } catch (_) {}
 
+// === CONTROL AUDIO LA BACKGROUND / INTOARCERE PE PAGINA ===
+let pianoWasPlaying = false;
+let voiceWasPlaying = false;
+
+function pauseAllAudioByBackground() {
+  if (melodie && !melodie.paused) {
+    melodie.pause();
+    pianoWasPlaying = true;
+  } else {
+    pianoWasPlaying = false;
+  }
+
+  if (voce && !voce.paused) {
+    voce.pause();
+    voiceWasPlaying = true;
+  } else {
+    voiceWasPlaying = false;
+  }
+}
+
+function resumeAudioFromBackground() {
+  // Reluam doar ce era deja pornit, nu fortam nimic nou
+  if (pianoWasPlaying && melodie) {
+    melodie.play().catch(() => {});
+  }
+  if (voiceWasPlaying && voce) {
+    voce.play().catch(() => {});
+  }
+}
+
+// Cand pagina nu mai e vizibila (alt tab, app in bara etc.)
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    pauseAllAudioByBackground();
+  } else {
+    resumeAudioFromBackground();
+  }
+});
+
+// Pentru iPhone / Safari: pagehide e mai sigur decat beforeunload
+window.addEventListener("pagehide", () => {
+  pauseAllAudioByBackground();
+});
+
+
 // =========================
 // ELEMENTE & STRATURI
 // =========================
@@ -427,7 +472,21 @@ voce?.addEventListener("ended", keepAwakeOff);
 // =========================
 // HOUSEKEEPING
 // =========================
-window.addEventListener("beforeunload", () => { try { melodie?.pause?.(); } catch (_) {} });
+window.addEventListener("beforeunload", () => {
+  try {
+    if (melodie) {
+      melodie.pause();
+      melodie.currentTime = 0;
+    }
+  } catch (_) {}
+
+  try {
+    if (voce) {
+      voce.pause();
+      voce.currentTime = 0;
+    }
+  } catch (_) {}
+});
 
 // =====================
 // COUNTDOWN INVITATIE
