@@ -6,6 +6,8 @@ import os, json, uuid, threading
 
 # ================== App & Config ==================
 app = Flask(__name__)
+
+# Chei din Render -> Environment (le ai deja)
 app.secret_key = os.environ.get("SECRET_KEY", "Thea2025_secret")
 ADMIN_KEY      = os.environ.get("ADMIN_KEY", "Thea2025")
 
@@ -21,6 +23,7 @@ CORS(
 
 @app.after_request
 def add_cors_headers(resp):
+    # Headers clare pe toate raspunsurile (inclusiv preflight)
     resp.headers["Access-Control-Allow-Origin"]  = GHP_ORIGIN
     resp.headers["Access-Control-Allow-Methods"] = "GET,POST,DELETE,OPTIONS"
     resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
@@ -33,21 +36,29 @@ def any_options(_any):
 
 # ================== Stocare pe disc ==================
 # Preferam /data (disk persistent Render). Daca nu exista, cadem pe repo.
-BASE_DIR  = Path(__file__).resolve().parents[1]   # parintele lui /backend
-REPO_FILE = BASE_DIR / "responses.json"           # fallback
+BASE_DIR  = Path(__file__).resolve().parents[1]          # parintele lui /backend
+REPO_FILE = BASE_DIR / "responses.json"                  # fallback in repo
 DATA_DIR  = Path("/data")
 
 if DATA_DIR.exists():
     DATA_FILE = DATA_DIR / "responses.json"
     # Migrare one-shot din repo -> /data, daca pe /data nu exista inca
     try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
         if (not DATA_FILE.exists()) and REPO_FILE.exists():
-            DATA_DIR.mkdir(parents=True, exist_ok=True)
             DATA_FILE.write_text(REPO_FILE.read_text(encoding="utf-8"), encoding="utf-8")
+        # Daca nici in repo nu exista, cream fisier gol in /data
+        if not DATA_FILE.exists():
+            DATA_FILE.write_text("[]", encoding="utf-8")
     except Exception as e:
-        print("WARN: nu am putut migra responses.json pe /data:", e)
+        print("WARN: nu am putut initializa/migra responses.json pe /data:", e)
 else:
     DATA_FILE = REPO_FILE
+    try:
+        if not DATA_FILE.exists():
+            DATA_FILE.write_text("[]", encoding="utf-8")
+    except Exception as e:
+        print("WARN: nu am putut crea responses.json in repo:", e)
 
 _lock = threading.Lock()
 
@@ -59,6 +70,7 @@ def load_data():
             data = json.load(f)
         return data if isinstance(data, list) else []
     except Exception:
+        # daca fisierul e corupt partial, nu crapam aplicatia
         return []
 
 def save_data(data):
@@ -66,13 +78,14 @@ def save_data(data):
     tmp = DATA_FILE.with_suffix(DATA_FILE.suffix + ".tmp")
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, DATA_FILE)
+    os.replace(tmp, DATA_FILE)  # atomic replace
 
 # ================== Utilitare ==================
 TRUE_SET  = {"true", "1", "y", "yes", "da", "particip", "vin"}
 FALSE_SET = {"false", "0", "n", "no", "nu", "nu_particip", "nu_vin"}
 
 def coerce_status(body):
+    # 1) bool / numeric pe 'participare' sau 'particip'
     for key in ("participare", "particip"):
         if key in body:
             v = body.get(key)
@@ -84,6 +97,7 @@ def coerce_status(body):
                 s = v.strip().lower()
                 if s in TRUE_SET:  return "particip"
                 if s in FALSE_SET: return "nu"
+    # 2) string pe 'status' sau 'prezenta'
     for key in ("status", "prezenta"):
         if isinstance(body.get(key), str):
             s = body.get(key, "").strip().lower()
@@ -101,13 +115,18 @@ def coerce_int(v, default=1, min_value=0):
 # ================== Health ==================
 @app.get("/")
 def root_health():
-    return jsonify({"status": "ok", "service": "invitatie-botez-thea-backend", "ts": datetime.utcnow().isoformat()})
+    return jsonify({
+        "status": "ok",
+        "service": "invitatie-botez-thea-backend",
+        "ts": datetime.utcnow().isoformat()
+    })
 
 @app.get("/health")
 def health():
+    # optional: scriem un mic log pe /data ca sa vedem ca discul e montat
     try:
         if DATA_DIR.exists():
-            (DATA_DIR / "health.txt").write_text(datetime.utcnow().isoformat(), encoding="utf-8")
+            Path(DATA_DIR / "health.txt").write_text(datetime.utcnow().isoformat(), encoding="utf-8")
     except Exception:
         pass
     return jsonify({"ok": True, "ts": datetime.utcnow().isoformat(), "data_file": str(DATA_FILE)})
@@ -134,6 +153,7 @@ def logout():
 def is_admin():
     if session.get("admin"):
         return True
+    # fallback: key in query string (util daca admin.html foloseste ?key=...)
     if request.args.get("key") == ADMIN_KEY:
         return True
     return False
@@ -151,15 +171,20 @@ def rsvp():
     nume     = (body.get("nume") or body.get("name") or "").strip()
     status   = coerce_status(body)
     persoane = coerce_int(body.get("persoane", body.get("persons", 1)), default=1, min_value=0)
-    phone    = (body.get("phone")  or body.get("telefon") or "").strip()
-    note     = (body.get("note")   or body.get("mesaj")   or "").strip()
+    phone    = (body.get("phone") or body.get("telefon") or "").strip()
+    note     = (body.get("note")  or body.get("mesaj")   or "").strip()
 
     if not nume:
         return jsonify({"error": "camp 'nume' lipsa"}), 400
     if status not in {"particip", "nu"}:
         return jsonify({
             "error": "camp 'status/participare' lipsa sau invalid",
-            "detalii_acceptate": {"participare": "bool/str", "particip": "bool/str", "status": "particip/nu", "prezenta": "da/nu"}
+            "detalii_acceptate": {
+                "participare": "bool/str",
+                "particip": "bool/str",
+                "status": "particip/nu",
+                "prezenta": "da/nu"
+            }
         }), 400
 
     entry = {
