@@ -1,30 +1,45 @@
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import os, json, uuid, threading
+import secrets, string
+
+import psycopg2
+import psycopg2.extras
 
 # ================== App & Config ==================
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "Thea2025_secret")
-ADMIN_KEY      = os.environ.get("ADMIN_KEY", "Thea2025")
 
-# Originea frontend-ului (GitHub Pages)
-GHP_ORIGIN = "https://bogdanflorea385.github.io"
+ADMIN_KEY    = os.environ.get("ADMIN_KEY", "Thea2025")
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
-# CORS: accepta doar cereri de pe GitHub Pages
+# ================== CORS ==================
+# Origini permise (GitHub Pages + domeniul tau)
+GHP_ORIGIN     = "https://bogdanflorea385.github.io"
+IPV_ORIGIN_1   = "https://impreunainpoveste.ro"
+IPV_ORIGIN_2   = "https://www.impreunainpoveste.ro"
+
+ALLOWED_ORIGINS = [GHP_ORIGIN, IPV_ORIGIN_1, IPV_ORIGIN_2]
+
 CORS(
     app,
-    resources={r"/*": {"origins": [GHP_ORIGIN]}},
+    resources={r"/*": {"origins": ALLOWED_ORIGINS}},
     supports_credentials=False,
 )
 
 @app.after_request
 def add_cors_headers(resp):
     # headers clare pe toate raspunsurile (inclusiv preflight)
-    resp.headers["Access-Control-Allow-Origin"]  = GHP_ORIGIN
+    origin = request.headers.get("Origin", "")
+    if origin in ALLOWED_ORIGINS:
+        resp.headers["Access-Control-Allow-Origin"] = origin
+    else:
+        resp.headers["Access-Control-Allow-Origin"] = GHP_ORIGIN
+
     resp.headers["Access-Control-Allow-Methods"] = "GET,POST,DELETE,OPTIONS"
-    resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, X-ADMIN-KEY"
     return resp
 
 # Preflight generic
@@ -32,11 +47,17 @@ def add_cors_headers(resp):
 def any_options(_any):
     return ("", 204)
 
-# ================== Stocare pe disc ==================
+# ================== DB (Neon / Postgres) ==================
+def db():
+    # DATABASE_URL vine din Render Environment
+    return psycopg2.connect(DATABASE_URL, sslmode="require")
+
+# ================== Stocare pe disc (RSVP legacy) ==================
 # Preferam /data (disk persistent Render). Daca nu exista, cadem pe repo.
 BASE_DIR  = Path(__file__).resolve().parents[1]          # parintele lui /backend
-REPO_FILE = BASE_DIR / "responses.json"                   # fallback
+REPO_FILE = BASE_DIR / "responses.json"                  # fallback
 DATA_DIR  = Path("/data")
+
 if DATA_DIR.exists():
     DATA_FILE = DATA_DIR / "responses.json"
     # Migrare one-shot din repo -> /data, daca pe /data nu exista inca
@@ -68,7 +89,7 @@ def save_data(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
     os.replace(tmp, DATA_FILE)  # atomic replace
 
-# ================== Utilitare ==================
+# ================== Utilitare (RSVP) ==================
 TRUE_SET  = {"true", "1", "y", "yes", "da", "particip", "vin"}
 FALSE_SET = {"false", "0", "n", "no", "nu", "nu_particip", "nu_vin"}
 
@@ -215,6 +236,55 @@ def stats():
         "total_persoane": total_persoane,
         "total_inregistrari": len(data),
     })
+
+# ================== Santa Demo (Pasul 2) ==================
+def _gen_code():
+    alphabet = string.ascii_uppercase + string.digits
+    return "MOS-" + "".join(secrets.choice(alphabet) for _ in range(6))
+
+def _gen_token(n=24):
+    return secrets.token_urlsafe(n)
+
+@app.post("/api/santa/demo/create")
+def santa_demo_create():
+    # protectie admin (header)
+    if request.headers.get("X-ADMIN-KEY", "") != ADMIN_KEY:
+        return jsonify({"ok": False, "error": "unauthorized"}), 401
+
+    if not DATABASE_URL:
+        return jsonify({"ok": False, "error": "missing_database_url"}), 500
+
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(hours=72)
+
+    for _ in range(10):
+        code = _gen_code()
+        child_token = _gen_token()
+        parent_token = _gen_token()
+
+        try:
+            with db() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute("""
+                    INSERT INTO orders (code, status, created_at, expires_at, child_token, parent_token)
+                    VALUES (%s, 'demo', %s, %s, %s, %s)
+                    RETURNING id, code, expires_at, child_token, parent_token
+                """, (code, now, expires_at, child_token, parent_token))
+                row = cur.fetchone()
+
+            return jsonify({
+                "ok": True,
+                "order_id": row["id"],
+                "code": row["code"],
+                "expires_at": row["expires_at"].isoformat(),
+                "child_url": f"https://impreunainpoveste.ro/mos/c.html?t={row['child_token']}",
+                "parent_url": f"https://impreunainpoveste.ro/mos/p.html?t={row['parent_token']}"
+            }), 201
+
+        except psycopg2.Error:
+            # daca nimerim un code duplicat (rar), mai incercam
+            continue
+
+    return jsonify({"ok": False, "error": "could_not_generate_unique_code"}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
